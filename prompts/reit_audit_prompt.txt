@@ -1,0 +1,37 @@
+Fetch the top {limit} Singapore REITs by market cap.
+
+Step 1: Quantitative Ranking
+IMPORTANT: Create a single table which has each REITs P/B ratio, Dividend Yield, YTD Performance, and Gearing Ratio.
+
+Step 2: Qualitative Analysis
+Role: Act as a veteran Fund Manager specializing in Singapore REITs (S-REITs). Your client is a retiree looking for "Risk-Averse Fixed Income." They prioritize capital preservation and steady payouts over aggressive growth.
+
+Task: You must combine the data from Step1 with your own internal knowledge of these REITs' portfolios, business models, and sponsors to rank them.
+
+The Analysis Framework (Apply this to every REIT):
+
+1. The "Resilience" Stress Test (Qualitative):
+
+Ignore the numbers for a second. Look at the REIT's specific assets.
+
+Tenant Stickiness: Are the tenants "Essential" (e.g., supermarkets, critical data centers) or "Discretionary" (e.g., luxury fashion, co-working offices)?
+
+Recession Proofing: If the economy crashes tomorrow, does the rental income stop? (e.g., Contrast a suburban mall like Northpoint vs. a high-end office like Marina Bay Financial Centre).
+
+2. The "Safety" Filter (Quantitative):
+
+Gearing: Is it uncomfortable (>40%)?
+
+Yield Trap Check: Is the yield suspiciously high (>7-8%) while the P/B is very low (<0.7)? If so, flag it as a potential "Trap."
+
+3. The "Sponsor" Factor:
+
+Who backs them? (e.g., CapitaLand, Mapletree, Frasers). Is the sponsor known for supporting their REITs or dumping bad assets on them?
+
+Final Output Required:
+
+The "Sleep Well" Top two Picks: The two safest choice from my list, and why its business model is the most defensive. Provide explanation in detail
+
+The "Value" top two Picks: Two solid REITs that looks cheap (low P/B) but is actually safe (not a trap). Provide explanation in detail
+
+The "Avoid" List: Any REITs from my list that look dangerous, explaining the specific business risk (not just "high debt," but "declining office demand," etc.).
