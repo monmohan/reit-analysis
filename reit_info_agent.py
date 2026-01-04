@@ -1,7 +1,8 @@
 import os
 import asyncio
 import operator
-from typing import TypedDict, Annotated, List
+import uuid
+from typing import TypedDict, Annotated, List, Optional, Literal, Dict
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -10,6 +11,7 @@ from langchain_core.messages import HumanMessage, BaseMessage
 from langchain_core.tools import tool
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
+from langgraph.checkpoint.memory import MemorySaver
 
 from azure_auth import get_azure_ad_token
 from yahoo_finance_api import get_reit_info as fetch_reit_info, get_reit_data_structured
@@ -82,13 +84,13 @@ def analyze_top_singapore_reits(limit: int = 20) -> str:
     print(f"\nSuccessfully fetched data for {len(reit_data_list)} REITs\n")
 
     # Step 3: Create unified table
-    output = f"\n{'='*120}\n"
+    output = f"\n{'='*127}\n"
     output += f"TOP {len(reit_data_list)} SINGAPORE REITs - COMPREHENSIVE ANALYSIS (Sorted by Market Cap)\n"
-    output += f"{'='*120}\n\n"
+    output += f"{'='*127}\n\n"
 
     # Table header
-    output += f"{'Rank':<6}{'Ticker':<12}{'Company Name':<35}{'Mkt Cap':<12}{'Price':<9}{'P/B':<7}{'Yield':<8}{'YTD':<10}{'Gearing':<8}\n"
-    output += "-" * 120 + "\n"
+    output += f"{'Rank':<6}{'Ticker':<12}{'Company Name':<35}{'Mkt Cap':<12}{'Price':<9}{'P/B':<7}{'Yield':<8}{'YTD':<10}{'Gearing':<8}{'ICR':<7}\n"
+    output += "-" * 127 + "\n"
 
     # Table rows - already sorted by market cap from get_top_reits_by_market_cap()
     for i, reit in enumerate(reit_data_list, 1):
@@ -127,10 +129,14 @@ def analyze_top_singapore_reits(limit: int = 20) -> str:
         gearing = reit.get('gearing_ratio')
         gearing_str = f"{gearing:.2f}" if gearing else "N/A"
 
-        # Format row
-        output += f"{i:<6}{ticker:<12}{company:<35}{market_cap_str:<12}{price_str:<9}{pb_str:<7}{yield_str:<8}{ytd_str:<10}{gearing_str:<8}\n"
+        # Interest Coverage Ratio (ICR)
+        icr = reit.get('icr')
+        icr_str = f"{icr:.2f}x" if icr else "N/A"
 
-    output += "\n" + "="*120 + "\n"
+        # Format row
+        output += f"{i:<6}{ticker:<12}{company:<35}{market_cap_str:<12}{price_str:<9}{pb_str:<7}{yield_str:<8}{ytd_str:<10}{gearing_str:<8}{icr_str:<7}\n"
+
+    output += "\n" + "="*127 + "\n"
 
     return output
 
@@ -143,14 +149,135 @@ llm_with_tools = llm.bind_tools(tools)
 tool_node = ToolNode(tools)
 
 # 3. STATE DEFINITION
+class UserPreferences(TypedDict):
+    """Structured storage for user investment preferences"""
+    risk_tolerance: Optional[Literal["conservative", "moderate"]]
+    max_price_to_book: Optional[float]
+
 class AgentState(TypedDict):
+    """Extended state with HITL support"""
     messages: Annotated[List[BaseMessage], operator.add]
+    user_preferences: UserPreferences
+    preferences_collected: bool
+    needs_clarification: bool
+    clarification_question: Optional[str]
+
+# 3.5 HELPER FUNCTION FOR PREFERENCE COLLECTION
+def collect_user_preferences() -> Dict:
+    """
+    Collect user preferences through sequential prompts with defaults.
+
+    Returns:
+        Dictionary with user preferences
+    """
+    print("[AGENT] Let's gather your investment preferences...\n")
+
+    preferences = {}
+
+    # 1. Risk Tolerance
+    print("Risk Tolerance:")
+    print("  - conservative: Minimize volatility, prefer blue-chip sponsors")
+    print("  - moderate: Balanced risk-reward")
+    risk = input("Your choice [default: moderate]: ").strip().lower()
+
+    if risk in ['conservative', 'moderate']:
+        preferences['risk_tolerance'] = risk
+        print(f"✓ Risk Tolerance: {risk}\n")
+    else:
+        preferences['risk_tolerance'] = 'moderate'
+        print(f"✓ Risk Tolerance: moderate (default)\n")
+
+    # 2. Maximum Price-to-Book
+    print("Maximum Price-to-Book ratio:")
+    print("  Enter a ratio (e.g., 1.0) or press Enter for none")
+    max_pb = input("Your choice [default: none]: ").strip()
+
+    if max_pb:
+        try:
+            max_pb_float = float(max_pb)
+            preferences['max_price_to_book'] = max_pb_float
+            print(f"✓ Maximum Price-to-Book: {max_pb_float}\n")
+        except ValueError:
+            print(f"✓ Maximum Price-to-Book: none (invalid input, using default)\n")
+    else:
+        print(f"✓ Maximum Price-to-Book: none\n")
+
+    # Display final preferences
+    print("="*80)
+    print("YOUR PREFERENCES:")
+    print(f"- Risk Tolerance: {preferences.get('risk_tolerance', 'Not specified')}")
+    print(f"- Maximum Price-to-Book: {preferences.get('max_price_to_book', 'none')}")
+    print("="*80)
+    print()
+
+    return preferences
 
 # 4. NODES
+def preference_collector_node(state: AgentState) -> AgentState:
+    """
+    Signals that we're ready to collect preferences.
+    The interrupt will occur AFTER this node executes.
+    """
+    if state["preferences_collected"]:
+        # Preferences already collected, pass through
+        return state
+
+    # Add a message indicating we're about to collect preferences
+    message = "Ready to collect user investment preferences..."
+
+    return {"messages": [HumanMessage(content=message)]}
+
+def preference_parser_node(state: AgentState) -> AgentState:
+    """
+    Receives preferences dict and creates summary message for LLM context.
+    """
+    # Preferences are passed directly from state, not parsed from user input
+    preferences = state.get("user_preferences", {})
+
+    # Create summary for LLM context
+    prefs_summary = f"""
+User Investment Profile:
+- Risk Tolerance: {preferences.get('risk_tolerance', 'Not specified')}
+- Max P/B: {preferences.get('max_price_to_book', 'No limit')}
+"""
+
+    return {
+        "user_preferences": preferences,
+        "preferences_collected": True,
+        "messages": [HumanMessage(content=prefs_summary)]
+    }
+
 def agent_node(state: AgentState):
-    """The agent decides what to do."""
+    """Enhanced agent with preference awareness."""
     messages = state["messages"]
-    response = llm_with_tools.invoke(messages)
+    preferences = state["user_preferences"]
+
+    if state["preferences_collected"] and preferences:
+        # Create preference context for LLM
+        pref_context = f"""
+CONSIDERATION: USER PREFERENCES
+============================================
+The user has specified these investment criteria:
+
+Risk Tolerance: {preferences.get('risk_tolerance', 'Not specified')}
+Preferred Price-to-Book: {preferences.get('max_price_to_book', 'No limit')}
+
+INTERPRETATION GUIDELINES (Remember: REITs are dividend investments first):
+- "conservative" risk → Prioritize dividend stability and capital preservation.
+- "moderate" risk →  Expectation of growth and can take some volatility for long term growth, but still must consider dividend stability and capital preservation.
+
+============================================
+"""
+
+        # Prepend preference context to message history
+        enriched_messages = [HumanMessage(content=pref_context)] + messages
+
+        # Call LLM with enriched context
+        response = llm_with_tools.invoke(enriched_messages)
+    else:
+        # No preferences collected, use original behavior
+        response = llm_with_tools.invoke(messages)
+
     return {"messages": [response]}
 
 # 5. ROUTER
@@ -163,15 +290,25 @@ def router(state: AgentState):
 # 6. GRAPH CONSTRUCTION
 workflow = StateGraph(AgentState)
 
+# Add all nodes
+workflow.add_node("preference_collector", preference_collector_node)
+workflow.add_node("preference_parser", preference_parser_node)
 workflow.add_node("agent", agent_node)
 workflow.add_node("tools", tool_node)
 
-workflow.set_entry_point("agent")
-
+# Define flow
+workflow.set_entry_point("preference_collector")
+workflow.add_edge("preference_collector", "preference_parser")
+workflow.add_edge("preference_parser", "agent")
 workflow.add_conditional_edges("agent", router, ["tools", END])
 workflow.add_edge("tools", "agent")
 
-app = workflow.compile()
+# Compile with checkpointer and interrupt
+memory = MemorySaver()
+app = workflow.compile(
+    checkpointer=memory,
+    interrupt_after=["preference_collector"]
+)
 
 # 7. PROMPT LOADING
 def load_prompt(prompt_file='prompts/reit_audit_prompt.txt', limit=20):
@@ -198,46 +335,65 @@ def load_prompt(prompt_file='prompts/reit_audit_prompt.txt', limit=20):
 
 # 8. EXECUTION
 async def main():
-    print("--- REIT ANALYSIS AGENT ---")
-    print("\nThis agent can:")
-    print("1. Analyze individual REITs (e.g., 'Get info about C38U.SI')")
-    print("2. Analyze top Singapore REITs (e.g., 'Analyze the top 10 Singapore REITs')")
-    print("\n" + "="*80 + "\n")
+    print("--- REIT ANALYSIS AGENT WITH HUMAN-IN-THE-LOOP ---\n")
 
-    # Load prompt from external file
-    user_input = load_prompt(limit=25)
+    # Generate unique thread ID for state persistence
+    thread_id = str(uuid.uuid4())
+    config = {"configurable": {"thread_id": thread_id}}
 
-    inputs = {"messages": [HumanMessage(content=user_input)]}
+    # Load base prompt
+    base_prompt = load_prompt(limit=20)
 
-    # Capture analysis results
+    # Initialize state
+    initial_state = {
+        "messages": [HumanMessage(content=base_prompt)],
+        "user_preferences": {},
+        "preferences_collected": False,
+        "needs_clarification": False,
+        "clarification_question": None
+    }
+
+    # Step 1: Start graph execution - will run until interrupt
+    print("[AGENT] Initializing...\n")
+    async for event in app.astream(initial_state, config, stream_mode="values"):
+        # Graph will stop at the interrupt point
+        # The preference_collector_node has executed and added its message
+        pass
+
+    # Step 2: THE INTERRUPT HAPPENED! Graph is paused.
+    # Now collect user preferences with sequential prompts
+    user_preferences = collect_user_preferences()
+
+    # Step 3: Resume graph with collected preferences
+    # Use update_state to inject preferences into the paused graph
+    app.update_state(
+        config,
+        {
+            "user_preferences": user_preferences,
+            "preferences_collected": False  # Will be set to True by preference_parser_node
+        }
+    )
+
+    # Step 4: Continue graph execution to completion
     tool_output = ""
     final_response = ""
 
-    async for event in app.astream(inputs):
-        print("----------------EVENT----------------\n")
-        print(event)
-        print("----------------EVENT END----------------\n")
-        for key, value in event.items():
-            print(f"\n[Node: {key}]")
-            last_msg = value["messages"][-1]
+    print("[AGENT] Processing analysis...\n")
+    async for event in app.astream(None, config, stream_mode="values"):
+        last_msg = event["messages"][-1]
 
-            if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
-                print(f"  -> Calling tool: {last_msg.tool_calls[0]['name']}")
-            elif hasattr(last_msg, "content"):
-                content = last_msg.content
-                print(f"  -> Response received ({len(content)} chars)")
+        # Capture tool output (contains raw rankings data)
+        if hasattr(last_msg, "name") and last_msg.name == "analyze_top_singapore_reits":
+            tool_output = last_msg.content
+            print("[TOOLS] Data collection complete\n")
 
-                # Capture tool output (contains raw rankings data)
-                if key == "tools" and content:
-                    tool_output = content
-
-                # Store the final agent response (synthesis)
-                # Check if tool_calls is empty or doesn't exist
-                if key == "agent" and content:
-                    has_tool_calls = hasattr(last_msg, "tool_calls") and last_msg.tool_calls
-                    if not has_tool_calls:
-                        final_response = content
-                        print(f"  -> Captured final AI response ({len(content)} chars)")
+        # Store the final agent response (synthesis)
+        # Check if tool_calls is empty or doesn't exist
+        elif hasattr(last_msg, "content"):
+            has_tool_calls = hasattr(last_msg, "tool_calls") and last_msg.tool_calls
+            if not has_tool_calls:
+                final_response = last_msg.content
+                print(f"[AGENT] Analysis complete\n")
 
     # Generate markdown report
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -246,13 +402,15 @@ async def main():
     markdown_content = f"""# Singapore REIT Analysis Report
 
 **Generated:** {timestamp}
-**Query:** {user_input}
+**Query:** Analyze top 20 Singapore REITs with user preferences
 
 ---
 
 ## Raw Data Table
 
+```
 {tool_output if tool_output else "No tool output captured"}
+```
 
 ---
 
