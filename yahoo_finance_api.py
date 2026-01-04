@@ -48,6 +48,34 @@ def get_reit_info(ticker: str) -> str:
         if total_debt is not None and total_assets is not None and total_assets > 0:
             gearing_ratio = total_debt / total_assets
 
+        # Calculate Interest Coverage Ratio (ICR)
+        icr = None
+        try:
+            financials = stock.financials  # Income statement
+
+            if not financials.empty:
+                # Try to get EBIT
+                ebit = None
+                if 'EBIT' in financials.index:
+                    ebit = financials.loc['EBIT'].iloc[0]
+                elif 'Operating Income' in financials.index:
+                    ebit = financials.loc['Operating Income'].iloc[0]
+                elif 'EBITDA' in financials.index:
+                    ebit = financials.loc['EBITDA'].iloc[0]
+
+                # Try to get Interest Expense
+                interest_expense = None
+                if 'Interest Expense' in financials.index:
+                    interest_expense = financials.loc['Interest Expense'].iloc[0]
+                elif 'Net Interest Expense' in financials.index:
+                    interest_expense = financials.loc['Net Interest Expense'].iloc[0]
+
+                # Calculate ICR
+                if ebit is not None and interest_expense is not None and interest_expense != 0:
+                    icr = ebit / abs(interest_expense)  # abs() since interest expense is usually negative
+        except Exception:
+            icr = None
+
         if current_price is None:
             return f"Error: Current price data not available for {ticker}"
 
@@ -96,6 +124,11 @@ def get_reit_info(ticker: str) -> str:
             output += f"Gearing Ratio (Debt/Assets): {gearing_ratio:.2f}\n"
         else:
             output += "Gearing Ratio (Debt/Assets): N/A\n"
+
+        if icr is not None:
+            output += f"Interest Coverage Ratio (ICR): {icr:.2f}x\n"
+        else:
+            output += "Interest Coverage Ratio (ICR): N/A\n"
 
         output += "\n"
 
@@ -170,6 +203,34 @@ def get_reit_data_structured(ticker: str) -> Optional[Dict[str, Any]]:
         if total_debt is not None and total_assets is not None and total_assets > 0:
             gearing_ratio = total_debt / total_assets
 
+        # Calculate Interest Coverage Ratio (ICR)
+        icr = None
+        try:
+            financials = stock.financials  # Income statement
+
+            if not financials.empty:
+                # Try to get EBIT
+                ebit = None
+                if 'EBIT' in financials.index:
+                    ebit = financials.loc['EBIT'].iloc[0]
+                elif 'Operating Income' in financials.index:
+                    ebit = financials.loc['Operating Income'].iloc[0]
+                elif 'EBITDA' in financials.index:
+                    ebit = financials.loc['EBITDA'].iloc[0]
+
+                # Try to get Interest Expense
+                interest_expense = None
+                if 'Interest Expense' in financials.index:
+                    interest_expense = financials.loc['Interest Expense'].iloc[0]
+                elif 'Net Interest Expense' in financials.index:
+                    interest_expense = financials.loc['Net Interest Expense'].iloc[0]
+
+                # Calculate ICR
+                if ebit is not None and interest_expense is not None and interest_expense != 0:
+                    icr = ebit / abs(interest_expense)  # abs() since interest expense is usually negative
+        except Exception:
+            icr = None
+
         if current_price is None:
             return None
 
@@ -222,6 +283,7 @@ def get_reit_data_structured(ticker: str) -> Optional[Dict[str, Any]]:
             'market_cap': float(market_cap) if market_cap else None,
             'price_to_book': float(price_to_book) if price_to_book else None,
             'gearing_ratio': float(gearing_ratio) if gearing_ratio is not None else None,
+            'icr': float(icr) if icr is not None else None,
             'current_year_dividend_yield': current_year_dividend_yield,
             'dividend_history': dividend_history,
             'ytd_performance': float(ytd_performance) if ytd_performance is not None else None

@@ -1,37 +1,63 @@
 Fetch the top {limit} Singapore REITs by market cap.
+Role: Act as a Senior Portfolio Manager specializing in Singapore REITs (S-REITs) for conservative, income-focused clients (retirees).
+
+Objective: Analyze the top {limit} S-REITs by market cap to identify "Sleep Well at Night" (SWAN) candidates for a retiree's dividend portfolio.
+
 
 Step 1: Quantitative Ranking
 IMPORTANT: Create a single table which has each REITs P/B ratio, Dividend Yield, YTD Performance, and Gearing Ratio.
 
-Step 2: Qualitative Analysis
-Role: Act as a veteran Fund Manager specializing in Singapore REITs (S-REITs). Your client is a retiree looking for "Risk-Averse Fixed Income." They prioritize capital preservation and steady payouts over aggressive growth.
 
-Task: You must combine the data from Step1 with your own internal knowledge of these REITs' portfolios, business models, and sponsors to rank them.
+---
 
-The Analysis Framework (Apply this to every REIT):
+### Step 1: Data Gathering (The Quantitative Snapshot)
+Create a single summary table with the following columns. 
+*Note: If exact data is unavailable, estimate based on the last 2 quarters.*
 
-1. The "Resilience" Stress Test (Qualitative):
+1.  **Ticker/Name**
+2.  **Price-to-Book (P/B) Ratio**
+3.  **Distribution Yield (%)** (Trailing 12-month)
+4.  **Gearing Ratio (%)** (Aggregate Leverage)
+5.  **Interest Coverage Ratio (ICR)** (Crucial for safety)
+6.  **% of Debt on Fixed Rates** (If available)
 
-Ignore the numbers for a second. Look at the REIT's specific assets.
+---
 
-Tenant Stickiness: Are the tenants "Essential" (e.g., supermarkets, critical data centers) or "Discretionary" (e.g., luxury fashion, co-working offices)?
+### Step 2: The "Retiree Safety" Screening (The Analysis)
 
-Recession Proofing: If the economy crashes tomorrow, does the rental income stop? (e.g., Contrast a suburban mall like Northpoint vs. a high-end office like Marina Bay Financial Centre).
+For each REIT, apply the following **3-Point Framework** and classify them.
 
-2. The "Safety" Filter (Quantitative):
+#### 1. Financial Health Check (The "Safety" Filter)
+Do not just look at the raw number; look at the ability to pay debts.
+* **Gearing Flag:** If Gearing > 41%, mark as **[Caution]**. If > 45%, mark as **[High Risk]**.
+* **Interest Coverage:** If ICR < 3.0x, mark as **[Unsafe]**. (Retirees need a buffer against rising rates).
+* **Yield Trap Check:** If Yield is > 7.5% AND P/B is < 0.7, flag as **[Potential Yield Trap]**. Explain *why* the market has discounted it (e.g., US office exposure, lawsuit risks).
 
-Gearing: Is it uncomfortable (>40%)?
+#### 2. The "Income Stability" Test (The Resilience Filter)
+Retirees need cash flow they can spend, not volatile potential.
+* **DPU Trend:** Has the Distribution Per Unit (DPU) been stable or rising over the last 3 years? Flag any REIT that has cut dividends consecutively.
+* **Tenant Base:** Are the tenants "Essential Services" (Supermarkets, Government, Logistics, Data Centers) or "Cyclical" (High-end retail, Hospitality, Co-working)?
 
-Yield Trap Check: Is the yield suspiciously high (>7-8%) while the P/B is very low (<0.7)? If so, flag it as a potential "Trap."
+#### 3. The Sponsor Strength (The Sleep-Well Factor)
+Who comes to the rescue if things go wrong?
+* **Tier 1 Sponsors (Blue Chip):** CapitaLand, Mapletree, Frasers, Keppel. (Prefer these).
+* **Tier 2/3 Sponsors:** Independent or smaller foreign sponsors. (Scrutinize harder).
 
-3. The "Sponsor" Factor:
+---
 
-Who backs them? (e.g., CapitaLand, Mapletree, Frasers). Is the sponsor known for supporting their REITs or dumping bad assets on them?
+### Step 3: Final Recommendations
 
-Final Output Required:
+Group the results into these three specific buckets for the retiree:
 
-The "Sleep Well" Top two Picks: The two safest choice from my list, and why its business model is the most defensive. Provide explanation in detail
+**1. The "SWAN" List (Sleep Well At Night - Core Holdings)**
+* *Criteria:* Low volatility, Tier 1 Sponsor, Essential tenants, ICR > 3.5x.
+FOR EACH IN THIS LIST, EXPLAIN IN DETAIL why this specific REIT will likely keep paying dividends even in a recession.
 
-The "Value" top two Picks: Two solid REITs that looks cheap (low P/B) but is actually safe (not a trap). Provide explanation in detail
+**2. The "Value" List (Good Risk/Reward)**
+* *Criteria:* Fundamentally strong but trading at a discount (Low P/B) due to temporary headwinds (e.g., high interest rates affecting stock price, but rent is stable).
 
-The "Avoid" List: Any REITs from my list that look dangerous, explaining the specific business risk (not just "high debt," but "declining office demand," etc.).
+**3. The "Red Flags" (Avoid for Retirees)**
+* *Criteria:* Gearing > 45%, consecutive DPU cuts, or highly cyclical tenants (e.g., pure US Office exposure).
+* *Action:* Explicitly state: "Avoid due to [specific risk]."
+
+**Constraint:** Use professional, objective financial language but keep the explanations simple enough for a layperson to understand the *risk*.
