@@ -13,3 +13,6 @@ pandas>=2.0.0
 
 # Environment Management
 python-dotenv>=1.0.0
+
+# Web Search
+duckduckgo-search>=4.0.0
