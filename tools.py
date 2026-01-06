@@ -6,11 +6,56 @@ Contains tools that can be bound to the LLM for:
 - Analyzing top Singapore REITs
 - Web search for qualitative information
 """
+import requests
+from bs4 import BeautifulSoup
 from langchain_core.tools import tool
 from duckduckgo_search import DDGS
 
 from yahoo_finance_api import get_reit_info as fetch_reit_info, get_reit_data_structured
 from singapore_reits import get_top_reits_by_market_cap
+
+
+def fetch_page_content(url: str, max_chars: int = 5000) -> str:
+    """
+    Fetch and extract text content from a URL.
+
+    Args:
+        url: The URL to fetch
+        max_chars: Maximum characters to return (default 5000)
+
+    Returns:
+        Extracted text content or error message
+    """
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Remove script and style elements
+        for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
+            element.decompose()
+
+        # Get text content
+        text = soup.get_text(separator=' ', strip=True)
+
+        # Clean up whitespace
+        text = ' '.join(text.split())
+
+        # Truncate if too long
+        if len(text) > max_chars:
+            text = text[:max_chars] + "... [truncated]"
+
+        return text
+    except requests.exceptions.Timeout:
+        return "[Error: Request timed out]"
+    except requests.exceptions.RequestException as e:
+        return f"[Error fetching page: {str(e)[:100]}]"
+    except Exception as e:
+        return f"[Error parsing page: {str(e)[:100]}]"
 
 
 @tool
@@ -166,7 +211,7 @@ def analyze_top_singapore_reits(limit: int = 20) -> str:
 @tool
 def search_reit_qualitative_info(ticker: str, company_name: str) -> str:
     """
-    Searches the web for qualitative information about a Singapore REIT.
+    Searches the web for qualitative information about a Singapore REIT and fetches full page content.
 
     Use this tool to get deeper insights about a REIT beyond the quantitative metrics,
     including:
@@ -181,57 +226,65 @@ def search_reit_qualitative_info(ticker: str, company_name: str) -> str:
         company_name: The full company name (e.g., 'CapitaLand Integrated Commercial Trust')
 
     Returns:
-        Formatted string with qualitative information from web search results
+        Formatted string with qualitative information from web pages (not just snippets)
     """
     print(f"\n[WEB SEARCH] Searching for qualitative info on {ticker} ({company_name})...")
 
     try:
         ddgs = DDGS()
 
-        # Search queries for different aspects
+        # More targeted search queries for tenant info
         queries = [
-            f'"{company_name}" REIT top tenants portfolio 2024',
-            f'"{company_name}" REIT news acquisitions 2024 2025',
-            f'"{company_name}" REIT quarterly results DPU',
+            f'"{company_name}" top tenants occupancy NLA 2024',
+            f'"{company_name}" annual report tenants portfolio',
         ]
 
         all_results = []
 
         for query in queries:
-            results = ddgs.text(query, max_results=3)
+            results = ddgs.text(query, max_results=2)
             all_results.extend(results)
 
         if not all_results:
             return f"No web search results found for {company_name} ({ticker})"
 
-        # Format results
+        # Deduplicate URLs
+        seen_urls = set()
+        unique_results = []
+        for result in all_results:
+            url = result.get('href', '')
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                unique_results.append(result)
+
+        # Format results with FULL PAGE CONTENT
         output = f"\n{'='*80}\n"
-        output += f"WEB SEARCH RESULTS: {company_name} ({ticker})\n"
+        output += f"QUALITATIVE RESEARCH: {company_name} ({ticker})\n"
         output += f"{'='*80}\n\n"
 
-        seen_titles = set()
-        for i, result in enumerate(all_results, 1):
+        # Fetch full content from top 2 most relevant pages
+        pages_to_fetch = unique_results[:2]
+
+        for i, result in enumerate(pages_to_fetch, 1):
             title = result.get('title', 'No title')
-            # Deduplicate by title
-            if title in seen_titles:
-                continue
-            seen_titles.add(title)
+            url = result.get('href', '')
 
-            body = result.get('body', 'No description')
-            href = result.get('href', '')
+            output += f"\n--- SOURCE {i}: {title} ---\n"
+            output += f"URL: {url}\n\n"
 
-            output += f"[{len(seen_titles)}] {title}\n"
-            output += f"    {body}\n"
-            output += f"    Source: {href}\n\n"
+            # Fetch full page content
+            print(f"[WEB SEARCH] Fetching content from: {url[:60]}...")
+            page_content = fetch_page_content(url, max_chars=6000)
+            output += f"CONTENT:\n{page_content}\n\n"
 
         output += f"{'='*80}\n"
-        output += "\nUse this information to provide deeper qualitative analysis about:\n"
-        output += "- Tenant quality and lease profiles\n"
-        output += "- Asset locations and property grades\n"
-        output += "- Recent corporate actions and news\n"
-        output += "- Sponsor support and pipeline\n"
+        output += "\nEXTRACT FROM THE ABOVE:\n"
+        output += "- Specific tenant names and their % of NLA or gross rental income\n"
+        output += "- Property names and locations\n"
+        output += "- Recent DPU figures and trends\n"
+        output += "- Any risks or concerns mentioned\n"
 
-        print(f"[WEB SEARCH] Found {len(seen_titles)} unique results for {ticker}")
+        print(f"[WEB SEARCH] Fetched full content from {len(pages_to_fetch)} pages for {ticker}")
         return output
 
     except Exception as e:

@@ -4,6 +4,7 @@ Singapore REIT Analysis Agent
 Main entry point that orchestrates the LangGraph agent for analyzing Singapore REITs.
 """
 import os
+import sys
 import asyncio
 import uuid
 from datetime import datetime
@@ -22,8 +23,10 @@ from nodes import (
     collect_user_preferences,
     preference_collector_node,
     preference_parser_node,
-    create_agent_node,
-    router,
+    create_reflection_aware_agent_node,
+    create_reflection_node,
+    tool_router,
+    reflection_router,
 )
 
 # 1. SETUP & AUTH
@@ -43,8 +46,11 @@ llm_with_tools = llm.bind_tools(all_tools)
 # Create ToolNode using built-in
 tool_node = ToolNode(all_tools)
 
-# Create agent node with LLM
-agent_node = create_agent_node(llm_with_tools)
+# Create agent node with reflection awareness
+agent_node = create_reflection_aware_agent_node(llm_with_tools)
+
+# Create reflection node (uses base LLM without tools)
+reflection_node = create_reflection_node(llm)
 
 # 3. GRAPH CONSTRUCTION
 workflow = StateGraph(AgentState)
@@ -54,13 +60,15 @@ workflow.add_node("preference_collector", preference_collector_node)
 workflow.add_node("preference_parser", preference_parser_node)
 workflow.add_node("agent", agent_node)
 workflow.add_node("tools", tool_node)
+workflow.add_node("reflection", reflection_node)
 
-# Define flow
+# Define flow with reflection loop
 workflow.set_entry_point("preference_collector")
 workflow.add_edge("preference_collector", "preference_parser")
 workflow.add_edge("preference_parser", "agent")
-workflow.add_conditional_edges("agent", router, ["tools", END])
+workflow.add_conditional_edges("agent", tool_router, ["tools", "reflection"])
 workflow.add_edge("tools", "agent")
+workflow.add_conditional_edges("reflection", reflection_router, ["agent", END])
 
 # Compile with checkpointer and interrupt
 memory = MemorySaver()
@@ -102,8 +110,12 @@ async def main():
     thread_id = str(uuid.uuid4())
     config = {"configurable": {"thread_id": thread_id}}
 
+    # Get number of REITs from command line (default: 5)
+    num_reits = int(sys.argv[1]) if len(sys.argv) > 1 else 5
+    print(f"[CONFIG] Analyzing top {num_reits} REITs\n")
+
     # Load base prompt
-    base_prompt = load_prompt(limit=20)
+    base_prompt = load_prompt(limit=num_reits)
 
     # Initialize state
     initial_state = {
@@ -111,7 +123,12 @@ async def main():
         "user_preferences": {},
         "preferences_collected": False,
         "needs_clarification": False,
-        "clarification_question": None
+        "clarification_question": None,
+        # Reflection tracking
+        "reflection_count": 0,
+        "max_reflections": 2,
+        "reflection_feedback": None,
+        "analysis_approved": False,
     }
 
     # Step 1: Start graph execution - will run until interrupt
@@ -138,10 +155,23 @@ async def main():
     # Step 4: Continue graph execution to completion
     tool_output = ""
     final_response = ""
+    last_reflection_count = 0
 
     print("[AGENT] Processing analysis...\n")
     async for event in app.astream(None, config, stream_mode="values"):
         last_msg = event["messages"][-1]
+
+        # Track reflection iterations
+        current_reflection_count = event.get("reflection_count", 0)
+        if current_reflection_count > last_reflection_count:
+            print(f"[REFLECTION] Analysis needs improvement (iteration {current_reflection_count})")
+            if event.get("reflection_feedback"):
+                print(f"[REFLECTION] Feedback: {event['reflection_feedback'][:200]}...\n")
+            last_reflection_count = current_reflection_count
+
+        # Log when analysis is approved
+        if event.get("analysis_approved") and not final_response:
+            print("[REFLECTION] Analysis approved!\n")
 
         # Capture tool output (contains raw rankings data)
         if hasattr(last_msg, "name") and last_msg.name == "analyze_top_singapore_reits":
