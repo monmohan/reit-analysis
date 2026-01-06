@@ -1,0 +1,12 @@
+{
+  "primary_llm": {
+    "provider": "azure_openai",
+    "model": null,
+    "temperature": 1.0
+  },
+  "reflection_llm": {
+    "provider": "azure_openai",
+    "model": null,
+    "temperature": 1.0
+  }
+}

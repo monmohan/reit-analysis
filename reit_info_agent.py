@@ -10,13 +10,13 @@ import uuid
 from datetime import datetime
 from dotenv import load_dotenv
 
-from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langgraph.checkpoint.memory import MemorySaver
 
-from azure_auth import get_azure_ad_token
+from config import load_llm_config
+from llm import create_llm
 from state import AgentState
 from tools import all_tools
 from nodes import (
@@ -32,25 +32,27 @@ from nodes import (
 # 1. SETUP & AUTH
 load_dotenv()
 
-llm = AzureChatOpenAI(
-    azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
-    api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    azure_ad_token_provider=get_azure_ad_token,
-    temperature=1
-)
+# Load LLM configuration from llm_config.json
+llm_config = load_llm_config()
 
-# 2. BIND TOOLS TO LLM
-llm_with_tools = llm.bind_tools(all_tools)
+# Create LLM instances based on configuration
+primary_llm = create_llm(llm_config["primary_llm"])
+reflection_llm = create_llm(llm_config["reflection_llm"])
+
+print(f"[CONFIG] Primary LLM: {llm_config['primary_llm']['provider']}")
+print(f"[CONFIG] Reflection LLM: {llm_config['reflection_llm']['provider']}")
+
+# 2. BIND TOOLS TO PRIMARY LLM
+llm_with_tools = primary_llm.bind_tools(all_tools)
 
 # Create ToolNode using built-in
 tool_node = ToolNode(all_tools)
 
-# Create agent node with reflection awareness
+# Create agent node with reflection awareness (uses primary LLM)
 agent_node = create_reflection_aware_agent_node(llm_with_tools)
 
-# Create reflection node (uses base LLM without tools)
-reflection_node = create_reflection_node(llm)
+# Create reflection node (uses reflection LLM without tools)
+reflection_node = create_reflection_node(reflection_llm)
 
 # 3. GRAPH CONSTRUCTION
 workflow = StateGraph(AgentState)
@@ -79,7 +81,7 @@ app = workflow.compile(
 
 
 # 4. PROMPT LOADING
-def load_prompt(prompt_file='prompts/reit_audit_prompt.txt', limit=20):
+def load_prompt(prompt_file='prompts/reit_audit_prompt.txt', limit=5):
     """
     Load prompt template from file and format with parameters.
 

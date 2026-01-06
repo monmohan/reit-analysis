@@ -51,11 +51,81 @@ Create a `.env` file in the project root:
 ```env
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_OPENAI_DEPLOYMENT=your-deployment-name
-AZURE_OPENAI_API_VERSION=2024-02-15-preview
+AZURE_OPENAI_API_VERSION=your-open-api-version
 AZURE_TENANT_ID=your-tenant-id
 AZURE_CLIENT_ID=your-client-id
 AZURE_CLIENT_SECRET=your-client-secret
 ```
+
+## LLM Configuration
+
+The agent supports multiple LLM providers with separate configuration for primary analysis and reflection/critique. Edit `llm_config.json` to customize:
+
+### Default Configuration (Azure OpenAI for both)
+
+```json
+{
+  "primary_llm": {
+    "provider": "azure_openai",
+    "model": null,
+    "temperature": 1.0
+  },
+  "reflection_llm": {
+    "provider": "azure_openai",
+    "model": null,
+    "temperature": 0.7
+  }
+}
+```
+
+### Example: Anthropic Claude for Both
+
+```json
+{
+  "primary_llm": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-5-20250929",
+    "temperature": 1.0
+  },
+  "reflection_llm": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-5-20250929",
+    "temperature": 0.7
+  }
+}
+```
+
+### Example: Mixed Providers (Azure Primary + Anthropic Reflection)
+
+```json
+{
+  "primary_llm": {
+    "provider": "azure_openai",
+    "model": null,
+    "temperature": 1.0
+  },
+  "reflection_llm": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-5-20250929",
+    "temperature": 0.7
+  }
+}
+```
+
+### Supported Providers
+
+| Provider | Config Value | Required Env Vars |
+|----------|--------------|-------------------|
+| Azure OpenAI | `azure_openai` | `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT_NAME`, `AZURE_OPENAI_API_VERSION`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TOKEN_URL` |
+| Anthropic Claude | `anthropic` | `ANTHROPIC_API_KEY` |
+
+### Configuration Options
+
+| Option | Description |
+|--------|-------------|
+| `provider` | LLM provider: `azure_openai` or `anthropic` |
+| `model` | Model name. For Azure, use `null` to use `AZURE_OPENAI_DEPLOYMENT_NAME` env var. For Anthropic: `claude-sonnet-4-5-20250929`, `claude-opus-4-5-20251101`, etc. |
+| `temperature` | Model temperature (0.0-2.0). Lower = more focused, higher = more creative |
 
 ### Run the Agent
 
@@ -64,7 +134,7 @@ python3 reit_info_agent.py
 ```
 
 The agent will:
-1. Prompt you for investment preferences (risk tolerance, max P/B ratio)
+1. Prompt you for investment preferences (risk tolerance)
 2. Fetch and analyze top Singapore REITs
 3. Generate a timestamped markdown report: `reit_analysis_YYYYMMDD_HHMMSS.md`
 
@@ -119,6 +189,9 @@ preference_collector → preference_parser → agent → [router]
 | `yahoo_finance_api.py` | Yahoo Finance interface with dual output modes |
 | `singapore_reits.py` | Curated list of 24 Singapore REIT tickers |
 | `azure_auth.py` | Azure AD OAuth 2.0 authentication |
+| `config/llm_config.py` | LLM configuration loader and validation |
+| `llm/llm_factory.py` | LLM provider factory (Azure OpenAI, Anthropic) |
+| `llm_config.json` | LLM provider configuration file |
 | `prompts/reit_audit_prompt.txt` | Fund Manager persona prompt template |
 
 ## Key Financial Metrics
@@ -178,6 +251,7 @@ For detailed architecture documentation, design decisions, and development guide
 ## Dependencies
 
 - `langchain-openai` - Azure OpenAI integration
+- `langchain-anthropic` - Anthropic Claude integration
 - `langgraph` - Graph orchestration with checkpointing
 - `azure-identity` - Azure authentication
 - `yfinance` - Yahoo Finance API
