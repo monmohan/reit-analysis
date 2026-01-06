@@ -41,26 +41,10 @@ def collect_user_preferences() -> Dict:
         preferences['risk_tolerance'] = 'moderate'
         print(f"✓ Risk Tolerance: moderate (default)\n")
 
-    # 2. Maximum Price-to-Book
-    print("Maximum Price-to-Book ratio:")
-    print("  Enter a ratio (e.g., 1.0) or press Enter for none")
-    max_pb = input("Your choice [default: none]: ").strip()
-
-    if max_pb:
-        try:
-            max_pb_float = float(max_pb)
-            preferences['max_price_to_book'] = max_pb_float
-            print(f"✓ Maximum Price-to-Book: {max_pb_float}\n")
-        except ValueError:
-            print(f"✓ Maximum Price-to-Book: none (invalid input, using default)\n")
-    else:
-        print(f"✓ Maximum Price-to-Book: none\n")
-
     # Display final preferences
     print("="*80)
     print("YOUR PREFERENCES:")
     print(f"- Risk Tolerance: {preferences.get('risk_tolerance', 'Not specified')}")
-    print(f"- Maximum Price-to-Book: {preferences.get('max_price_to_book', 'none')}")
     print("="*80)
     print()
 
@@ -93,7 +77,6 @@ def preference_parser_node(state: AgentState) -> AgentState:
     prefs_summary = f"""
 User Investment Profile:
 - Risk Tolerance: {preferences.get('risk_tolerance', 'Not specified')}
-- Max P/B: {preferences.get('max_price_to_book', 'No limit')}
 """
 
     return {
@@ -126,11 +109,10 @@ CONSIDERATION: USER PREFERENCES
 The user has specified these investment criteria:
 
 Risk Tolerance: {preferences.get('risk_tolerance', 'Not specified')}
-Preferred Price-to-Book: {preferences.get('max_price_to_book', 'No limit')}
 
 INTERPRETATION GUIDELINES (Remember: REITs are dividend investments first):
 - "conservative" risk → Prioritize dividend stability and capital preservation.
-- "moderate" risk →  Expectation of growth and can take some volatility for long term growth, but still must consider dividend stability and capital preservation.
+- "moderate" risk → Expectation of growth and can take some volatility for long term growth, but still must consider dividend stability and capital preservation.
 
 ============================================
 """
@@ -195,6 +177,8 @@ def create_reflection_node(llm):
         current_count = state.get("reflection_count", 0)
         max_reflections = state.get("max_reflections", 2)
 
+        print(f"[DEBUG REFLECTION] Entered reflection node, iteration={current_count}, max={max_reflections}")
+
         # Find the last AI analysis message (not a tool call)
         analysis_message = None
         for msg in reversed(messages):
@@ -204,6 +188,7 @@ def create_reflection_node(llm):
 
         if not analysis_message:
             # No analysis to evaluate yet
+            print("[DEBUG REFLECTION] No analysis message found!")
             return {
                 "analysis_approved": False,
                 "reflection_feedback": "No analysis found to evaluate.",
@@ -211,9 +196,11 @@ def create_reflection_node(llm):
             }
 
         analysis_text = analysis_message.content
+        print(f"[DEBUG REFLECTION] Found analysis, length={len(analysis_text)} chars")
 
         # Check if max retries reached - accept anyway
-        if current_count >= max_reflections:
+        if current_count > max_reflections:
+            print("[DEBUG REFLECTION] Max reflections reached, auto-approving")
             return {
                 "analysis_approved": True,
                 "reflection_feedback": "Maximum reflection iterations reached. Accepting current analysis.",
@@ -230,15 +217,19 @@ def create_reflection_node(llm):
 Please evaluate the analysis and respond with the JSON format specified above."""
 
         try:
+            print("[DEBUG REFLECTION] Calling reflection LLM...")
             response = llm.invoke([
                 SystemMessage(content="You are a quality assurance analyst for REIT research. Respond only with the requested JSON format."),
                 HumanMessage(content=evaluation_request)
             ])
 
             response_text = response.content
+            print(f"[DEBUG REFLECTION] LLM response received, length={len(response_text)} chars")
+            print(f"[DEBUG REFLECTION] Response preview: {response_text[:300]}...")
 
             # Parse LLM response for approval decision
             approved, feedback = _parse_reflection_response(response_text)
+            print(f"[DEBUG REFLECTION] Parsed: approved={approved}")
 
             if approved:
                 return {
@@ -255,6 +246,7 @@ Please evaluate the analysis and respond with the JSON format specified above.""
 
         except Exception as e:
             # On error, accept the analysis to avoid blocking
+            print(f"[DEBUG REFLECTION ERROR] {str(e)}")
             return {
                 "analysis_approved": True,
                 "reflection_feedback": f"Reflection error: {str(e)}. Accepting current analysis.",
@@ -342,7 +334,6 @@ CONSIDERATION: USER PREFERENCES
 The user has specified these investment criteria:
 
 Risk Tolerance: {preferences.get('risk_tolerance', 'Not specified')}
-Preferred Price-to-Book: {preferences.get('max_price_to_book', 'No limit')}
 
 INTERPRETATION GUIDELINES (Remember: REITs are dividend investments first):
 - "conservative" risk → Prioritize dividend stability and capital preservation.
@@ -409,6 +400,7 @@ def reflection_router(state: AgentState):
     """
     if state.get("analysis_approved", False):
         return END
-    if state.get("reflection_count", 0) >= state.get("max_reflections", 2):
+    # Use > not >= so agent gets one more try where reflection_node will auto-approve
+    if state.get("reflection_count", 0) > state.get("max_reflections", 2):
         return END
     return "agent"

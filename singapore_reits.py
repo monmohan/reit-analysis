@@ -29,7 +29,6 @@ SINGAPORE_REITS = [
     'OXMU.SI',   # OUE Commercial REIT
     'LJ3.SI',    # Manulife US REIT
     'UD1U.SI',   # United Hampshire US REIT
-    'S68.SI',    # Singapore Shipping Corporation
     'CY6U.SI',   # Lendlease Global Commercial REIT
     'AU8U.SI',   # Dasin Retail Trust
 ]
