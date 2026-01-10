@@ -21,20 +21,36 @@ The analysis must be written in full professional prose, NOT shorthand bullet po
 - BAD: "ICR ~3.6x; hedging high; maturities staggered"
 - GOOD: "The Interest Coverage Ratio stands at a comfortable 3.6x, with 78% of debt hedged to fixed rates and debt maturities well-staggered over the next 5 years."
 
+### 4. Ranked Tables (CRITICAL - NEW)
+The SWAN and Value lists MUST include proper markdown tables with pipe characters (|), NOT bullet points:
+- BAD: "• Rank 1: CapitaLand... Yield 5.32%"
+- BAD: Just listing REITs as bullet points without a table
+- GOOD: "| Rank | REIT | Ticker | Yield |" with proper markdown table formatting using | and --- separators
+
 ## Additional Quality Criteria
 
-### 4. Sponsor Classification
+### 5. Sponsor Classification
 - Sponsors should be explicitly labeled as Tier 1, 2, or 3
 - Tier 1: CapitaLand, Mapletree, Frasers, Keppel
 
-### 5. Yield Trap Detection
+### 6. Yield Trap Detection
 - High yield (>7%) + Low P/B (<0.8) combinations must be explicitly flagged
 - Must explain WHY market has discounted these REITs
 
-### 6. Quantitative Specifics
+### 7. Quantitative Specifics
 - Gearing ratios with actual percentages (e.g., "38.5%")
 - ICR with actual values (e.g., "3.6x")
 - Occupancy rates with percentages
+
+### 8. Analyst Consensus Usage (NEW)
+- Analysis should reference analyst ratings and target prices where available
+- Should note number of analysts covering each REIT
+- Target price upside/downside should be mentioned for Value picks
+
+### 9. New Metrics Integration (NEW)
+- Analysis should use Beta for volatility assessment
+- ROA/ROE should be referenced for profitability
+- 52-week range context for price positioning
 
 ## Response Format
 

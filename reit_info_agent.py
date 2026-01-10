@@ -81,13 +81,14 @@ app = workflow.compile(
 
 
 # 4. PROMPT LOADING
-def load_prompt(prompt_file='prompts/reit_audit_prompt.txt', limit=5):
+def load_prompt(prompt_file='prompts/reit_audit_prompt.txt', limit=5, deep_dive_count=2):
     """
     Load prompt template from file and format with parameters.
 
     Args:
         prompt_file: Path to prompt template file
         limit: Number of REITs to analyze
+        deep_dive_count: Number of top REITs per category for deep-dive analysis
 
     Returns:
         Formatted prompt string
@@ -95,7 +96,7 @@ def load_prompt(prompt_file='prompts/reit_audit_prompt.txt', limit=5):
     try:
         with open(prompt_file, 'r') as f:
             template = f.read()
-        return template.format(limit=limit)
+        return template.format(limit=limit, deep_dive_count=deep_dive_count)
     except FileNotFoundError:
         print(f"Error: Prompt file '{prompt_file}' not found")
         raise

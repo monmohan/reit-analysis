@@ -153,6 +153,79 @@ def get_reit_info(ticker: str) -> str:
         else:
             output += "YTD Performance: N/A\n"
 
+        # Analyst Consensus
+        output += "\n--- Analyst Consensus ---\n"
+        analyst_rating = info.get('averageAnalystRating')
+        if analyst_rating:
+            output += f"Analyst Rating: {analyst_rating}\n"
+        recommendation = info.get('recommendationKey')
+        if recommendation:
+            output += f"Recommendation: {recommendation.upper()}\n"
+        num_analysts = info.get('numberOfAnalystOpinions')
+        if num_analysts:
+            output += f"Number of Analysts: {num_analysts}\n"
+        target_mean = info.get('targetMeanPrice')
+        target_high = info.get('targetHighPrice')
+        target_low = info.get('targetLowPrice')
+        if target_mean:
+            output += f"Target Price: ${target_mean:.2f} (Low: ${target_low:.2f}, High: ${target_high:.2f})\n"
+
+        # Company Profile
+        output += "\n--- Company Profile ---\n"
+        sector = info.get('sector')
+        industry = info.get('industry')
+        if sector:
+            output += f"Sector: {sector}\n"
+        if industry:
+            output += f"Industry: {industry}\n"
+        website = info.get('website')
+        if website:
+            output += f"Website: {website}\n"
+        business_summary = info.get('longBusinessSummary')
+        if business_summary:
+            # Truncate to ~200 chars for readability
+            summary = business_summary[:200] + "..." if len(business_summary) > 200 else business_summary
+            output += f"Business: {summary}\n"
+
+        # Financial Health
+        output += "\n--- Financial Health ---\n"
+        debt_to_equity = info.get('debtToEquity')
+        if debt_to_equity is not None:
+            output += f"Debt to Equity: {debt_to_equity:.2f}\n"
+        roa = info.get('returnOnAssets')
+        if roa is not None:
+            output += f"Return on Assets: {roa*100:.2f}%\n"
+        roe = info.get('returnOnEquity')
+        if roe is not None:
+            output += f"Return on Equity: {roe*100:.2f}%\n"
+        beta = info.get('beta')
+        if beta is not None:
+            output += f"Beta: {beta:.3f}\n"
+        payout = info.get('payoutRatio')
+        if payout is not None:
+            output += f"Payout Ratio: {payout*100:.2f}%\n"
+
+        # 52-Week Price Range
+        output += "\n--- 52-Week Price Range ---\n"
+        high_52 = info.get('fiftyTwoWeekHigh')
+        low_52 = info.get('fiftyTwoWeekLow')
+        change_52 = info.get('fiftyTwoWeekChange')
+        if high_52 and low_52:
+            output += f"52-Week High: ${high_52:.2f}\n"
+            output += f"52-Week Low: ${low_52:.2f}\n"
+        if change_52 is not None:
+            sign = "+" if change_52 >= 0 else ""
+            output += f"52-Week Change: {sign}{change_52*100:.2f}%\n"
+
+        # Ownership
+        output += "\n--- Ownership ---\n"
+        insiders = info.get('heldPercentInsiders')
+        institutions = info.get('heldPercentInstitutions')
+        if insiders is not None:
+            output += f"Insider Ownership: {insiders*100:.2f}%\n"
+        if institutions is not None:
+            output += f"Institutional Ownership: {institutions*100:.2f}%\n"
+
         return output
 
     except Exception as e:
@@ -277,6 +350,7 @@ def get_reit_data_structured(ticker: str) -> Optional[Dict[str, Any]]:
             ytd_performance = None
 
         return {
+            # Original fields
             'ticker': ticker,
             'company_name': company_name,
             'current_price': float(current_price) if current_price else None,
@@ -286,7 +360,48 @@ def get_reit_data_structured(ticker: str) -> Optional[Dict[str, Any]]:
             'icr': float(icr) if icr is not None else None,
             'current_year_dividend_yield': current_year_dividend_yield,
             'dividend_history': dividend_history,
-            'ytd_performance': float(ytd_performance) if ytd_performance is not None else None
+            'ytd_performance': float(ytd_performance) if ytd_performance is not None else None,
+
+            # NEW: Analyst Data
+            'analyst_rating': info.get('averageAnalystRating'),
+            'recommendation_key': info.get('recommendationKey'),
+            'recommendation_mean': float(info['recommendationMean']) if info.get('recommendationMean') else None,
+            'num_analyst_opinions': info.get('numberOfAnalystOpinions'),
+            'target_price_mean': float(info['targetMeanPrice']) if info.get('targetMeanPrice') else None,
+            'target_price_high': float(info['targetHighPrice']) if info.get('targetHighPrice') else None,
+            'target_price_low': float(info['targetLowPrice']) if info.get('targetLowPrice') else None,
+
+            # NEW: Company Profile
+            'business_summary': info.get('longBusinessSummary'),
+            'sector': info.get('sector'),
+            'industry': info.get('industry'),
+            'website': info.get('website'),
+            'company_officers': info.get('companyOfficers'),
+
+            # NEW: Financial Ratios
+            'debt_to_equity': float(info['debtToEquity']) if info.get('debtToEquity') else None,
+            'current_ratio': float(info['currentRatio']) if info.get('currentRatio') else None,
+            'quick_ratio': float(info['quickRatio']) if info.get('quickRatio') else None,
+            'return_on_assets': float(info['returnOnAssets']) if info.get('returnOnAssets') else None,
+            'return_on_equity': float(info['returnOnEquity']) if info.get('returnOnEquity') else None,
+            'revenue_growth': float(info['revenueGrowth']) if info.get('revenueGrowth') else None,
+            'earnings_growth': float(info['earningsGrowth']) if info.get('earningsGrowth') else None,
+            'payout_ratio': float(info['payoutRatio']) if info.get('payoutRatio') else None,
+            'beta': float(info['beta']) if info.get('beta') else None,
+
+            # NEW: Cash Flow
+            'free_cashflow': float(info['freeCashflow']) if info.get('freeCashflow') else None,
+            'operating_cashflow': float(info['operatingCashflow']) if info.get('operatingCashflow') else None,
+
+            # NEW: Ownership
+            'held_percent_insiders': float(info['heldPercentInsiders']) if info.get('heldPercentInsiders') else None,
+            'held_percent_institutions': float(info['heldPercentInstitutions']) if info.get('heldPercentInstitutions') else None,
+
+            # NEW: Additional Yield/Price Data
+            'five_year_avg_dividend_yield': float(info['fiveYearAvgDividendYield']) if info.get('fiveYearAvgDividendYield') else None,
+            'fifty_two_week_high': float(info['fiftyTwoWeekHigh']) if info.get('fiftyTwoWeekHigh') else None,
+            'fifty_two_week_low': float(info['fiftyTwoWeekLow']) if info.get('fiftyTwoWeekLow') else None,
+            'fifty_two_week_change': float(info['fiftyTwoWeekChange']) if info.get('fiftyTwoWeekChange') else None,
         }
 
     except Exception as e:
