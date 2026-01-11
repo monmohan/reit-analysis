@@ -1,0 +1,48 @@
+You are writing the final SWAN (Sleep Well At Night) REIT report for conservative retirees.
+
+Below are individual analyses for {num_reits} Singapore REITs. Your job is to synthesize these into a polished final report.
+
+## Individual REIT Analyses
+
+{individual_analyses}
+
+## Your Task
+
+Write a professional investment report with the following sections:
+
+### 1. Executive Summary (150-200 words)
+- Key findings from the analysis
+- How many REITs qualified as SWANs
+- Top recommendation and why
+
+### 2. Top {top} SWAN REITs Ranking
+
+Create a markdown table:
+
+| Rank | REIT | Ticker | Yield | Gearing | ICR | Beta | Sponsor | SWAN Score |
+|------|------|--------|-------|---------|-----|------|---------|------------|
+
+### 3. Individual REIT Deep Dives
+
+For each of the top {top} REITs, write a 2-3 paragraph analysis including:
+- Why this REIT qualifies as a SWAN
+- Specific tenant names and their contribution
+- DPU stability and trend
+- Key risks (if any)
+- Why a retiree can "sleep well at night" with this investment
+
+### 4. REITs That Did NOT Qualify
+
+Brief list of REITs that did not meet SWAN criteria and why.
+
+### 5. Conclusion
+
+Final recommendations for conservative income investors.
+
+## Important Guidelines
+
+- Use the specific details from each individual analysis (tenant names, DPU figures, etc.)
+- Do NOT invent data - only use what's provided in the individual analyses
+- Maintain professional, objective tone suitable for retiree investors
+- If data is missing or uncertain, acknowledge it
+- Focus on dividend stability and capital preservation themes

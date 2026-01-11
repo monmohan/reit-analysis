@@ -25,3 +25,4 @@ reit_analysis_*.md
 # OS files
 .DS_Store
 Thumbs.db
+results/
