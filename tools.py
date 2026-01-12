@@ -14,6 +14,26 @@ from duckduckgo_search import DDGS
 from yahoo_finance_api import get_reit_info as fetch_reit_info, get_reit_data_structured
 from singapore_reits import get_top_reits_by_market_cap
 
+# Mapping of tickers to common short names/abbreviations for better search results
+REIT_SHORT_NAMES = {
+    'C38U.SI': 'CICT',      # CapitaLand Integrated Commercial Trust
+    'A17U.SI': 'CLAR',      # CapitaLand Ascendas REIT
+    'ME8U.SI': 'MIT',       # Mapletree Industrial Trust
+    'M44U.SI': 'MLT',       # Mapletree Logistics Trust
+    'N2IU.SI': 'MPACT',     # Mapletree Pan Asia Commercial Trust
+    'TS0U.SI': 'MNACT',     # Mapletree North Asia Commercial Trust
+    'AJBU.SI': 'KREIT',     # Keppel REIT
+    'K71U.SI': 'KDCREIT',   # Keppel DC REIT
+    'T82U.SI': 'SUN',       # Suntec REIT
+    'D5IU.SI': 'FCT',       # Frasers Centrepoint Trust
+    'J69U.SI': 'FLCT',      # Frasers Logistics & Commercial Trust
+    'BUOU.SI': 'FHT',       # Frasers Hospitality Trust
+    'C2PU.SI': 'CLAS',      # CapitaLand Ascott Trust
+    'BTOU.SI': 'DCREIT',    # Digital Core REIT
+    'P40U.SI': 'PREIT',     # Parkway Life REIT
+    'CJLU.SI': 'NETLINK',   # NetLink NBN Trust
+}
+
 
 def fetch_page_content(url: str, max_chars: int = 5000) -> str:
     """
@@ -233,29 +253,69 @@ def search_reit_qualitative_info(ticker: str, company_name: str) -> str:
     try:
         ddgs = DDGS()
 
-        # More targeted search queries for tenant info
-        queries = [
-            f'"{company_name}" top tenants occupancy NLA 2024',
-            f'"{company_name}" annual report tenants portfolio',
-        ]
+        # Get short name for better search results
+        short_name = REIT_SHORT_NAMES.get(ticker, '')
+
+        # Build targeted search queries - use BOTH full name AND short name
+        # Always include "Singapore REIT" to filter out irrelevant results
+        queries = []
+
+        # Primary query with full name (most reliable)
+        queries.append(f'"{company_name}" Singapore tenants portfolio')
+
+        # If we have a short name, add combined query
+        if short_name:
+            queries.append(f'{short_name} "{company_name}" tenants top')
+
+        # Investor presentation query (best source for tenant data)
+        queries.append(f'"{company_name}" investor presentation annual report')
+
+        print(f"[WEB SEARCH] Short name: {short_name or 'N/A'}")
 
         all_results = []
 
         for query in queries:
+            print(f"[WEB SEARCH] Query: {query[:50]}...")
             results = ddgs.text(query, max_results=2)
             all_results.extend(results)
 
         if not all_results:
             return f"No web search results found for {company_name} ({ticker})"
 
-        # Deduplicate URLs
+        # Deduplicate URLs and filter out irrelevant domains
         seen_urls = set()
         unique_results = []
+        blocked_domains = [
+            # Gaming/VPN/accelerator
+            'leigod.com', 'jiasu.', 'gaming', 'vpn', 'accelerator',
+            # Social/generic
+            'wikipedia.org', 'zhihu.com', 'sohu.com', 'espn',
+            'mail.google.com', 'chatgpt.com', 'openai.com',
+            'facebook.com', 'twitter.com', 'youtube.com',
+            'amazon.com', 'ebay.com', 'alibaba.com',
+            # Chinese/Russian spam
+            'yandex.', 'douyin.com', 'tiktok.com', 'weibo.com',
+            'baidu.com', 'qq.com', '163.com',
+            # Other irrelevant
+            'askfilo.com', 'quora.com', 'reddit.com',
+            'linkedin.com', 'instagram.com', 'pinterest.com'
+        ]
+
         for result in all_results:
             url = result.get('href', '')
-            if url and url not in seen_urls:
-                seen_urls.add(url)
-                unique_results.append(result)
+            if not url or url in seen_urls:
+                continue
+
+            # Skip irrelevant domains
+            if any(blocked in url.lower() for blocked in blocked_domains):
+                print(f"[WEB SEARCH] Skipping irrelevant: {url[:50]}...")
+                continue
+
+            seen_urls.add(url)
+            unique_results.append(result)
+
+        if not unique_results:
+            return f"No relevant web search results found for {company_name} ({ticker})"
 
         # Format results with FULL PAGE CONTENT
         output = f"\n{'='*80}\n"

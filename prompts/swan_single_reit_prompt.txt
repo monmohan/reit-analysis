@@ -1,0 +1,72 @@
+You are analyzing {company_name} ({ticker}) to determine if it qualifies as a SWAN (Sleep Well At Night) REIT.
+
+## SWAN Criteria
+
+**HARD REQUIREMENTS (Must meet ALL):**
+1. **Tier 1 Sponsor** - CapitaLand, Mapletree, Frasers, or Keppel only
+2. **Low Gearing** - Below 40%
+3. **Strong ICR** - Above 3.5x
+4. **Low Volatility** - Beta below 0.8
+5. **Stable DPU** - No consecutive dividend cuts in past 3 years (check dividend history)
+
+**SOFT REQUIREMENT (Nice to have):**
+6. **Essential Tenants** - Supermarkets, healthcare, logistics, data centers, government
+
+**IMPORTANT:** If criteria 1-5 are met, set swan_qualified=true even if tenant info is unavailable from web search. Tenant info enhances the analysis but should NOT disqualify a REIT that passes all hard requirements.
+
+## Yahoo Finance Data for {ticker}
+
+{yahoo_data_formatted}
+
+## Your Task
+
+**STEP 1: Call the web search tool**
+You MUST call search_reit_qualitative_info to get tenant information, property details, and recent news.
+
+Call it with:
+- ticker: "{ticker}"
+- company_name: "{company_name}"
+
+**STEP 2: Evaluate against SWAN criteria**
+After getting web search results, evaluate whether this REIT qualifies as a SWAN candidate.
+
+**STEP 3: Return JSON output**
+
+## Required Output Format (MUST be valid JSON)
+
+```json
+{{
+  "ticker": "{ticker}",
+  "company_name": "{company_name}",
+  "swan_qualified": true or false,
+  "swan_score": 1-10,
+  "metrics": {{
+    "gearing": number or null,
+    "icr": number or null,
+    "beta": number or null,
+    "current_yield": number or null,
+    "sponsor": "sponsor name",
+    "sponsor_tier": 1, 2, or 3
+  }},
+  "tenants_found": ["list", "of", "actual", "tenant", "names"],
+  "key_properties": ["list", "of", "property", "names"],
+  "dpu_trend": "stable/growing/declining",
+  "rationale": "2-3 paragraphs explaining your SWAN assessment with SPECIFIC details from the web search. Include actual tenant names, DPU figures, and why this REIT would or would not let retirees sleep well at night."
+}}
+```
+
+## Scoring Guide
+
+- 9-10: Exceptional SWAN - All criteria met, Tier 1 sponsor, very low gearing, essential tenants
+- 7-8: Strong SWAN - Most criteria met, minor concerns
+- 5-6: Borderline - Some SWAN qualities but notable risks
+- 3-4: Weak candidate - Multiple SWAN criteria fail
+- 1-2: Not a SWAN - High risk, avoid for conservative investors
+
+## Important Notes
+
+- You MUST call the web search tool first before providing your analysis
+- Include SPECIFIC tenant names from web search (not generic phrases like "diversified tenants")
+- Include SPECIFIC DPU figures if available
+- If web search fails or returns limited info, note this in your rationale
+- Be honest about data limitations

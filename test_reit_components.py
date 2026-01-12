@@ -178,6 +178,114 @@ def test_multi_reit_analysis():
     return True
 
 
+def test_expanded_yahoo_finance_fields():
+    """Test that get_reit_data_structured returns all expected fields including new ones."""
+    print("\n" + "="*80)
+    print("TEST 4: Expanded Yahoo Finance Fields")
+    print("="*80)
+
+    from yahoo_finance_api import get_reit_data_structured
+
+    # Test with BUOU.SI (Frasers Logistics & Commercial Trust)
+    test_ticker = 'BUOU.SI'
+    print(f"\nTesting with ticker: {test_ticker}")
+
+    data = get_reit_data_structured(test_ticker)
+
+    if data is None:
+        print("❌ FAILED: Should return data for valid ticker")
+        return False
+
+    # Original fields (10)
+    original_fields = [
+        'ticker', 'company_name', 'current_price', 'market_cap', 'price_to_book',
+        'gearing_ratio', 'icr', 'current_year_dividend_yield', 'dividend_history',
+        'ytd_performance'
+    ]
+
+    # New fields (25)
+    new_fields = [
+        # Analyst data
+        'analyst_rating', 'recommendation_key', 'recommendation_mean',
+        'num_analyst_opinions', 'target_price_mean', 'target_price_high', 'target_price_low',
+        # Company profile
+        'business_summary', 'sector', 'industry', 'website', 'company_officers',
+        # Financial ratios
+        'debt_to_equity', 'current_ratio', 'quick_ratio', 'return_on_assets',
+        'return_on_equity', 'revenue_growth', 'earnings_growth', 'payout_ratio', 'beta',
+        # Cash flow
+        'free_cashflow', 'operating_cashflow',
+        # Ownership
+        'held_percent_insiders', 'held_percent_institutions',
+        # Additional
+        'five_year_avg_dividend_yield', 'fifty_two_week_high', 'fifty_two_week_low',
+        'fifty_two_week_change'
+    ]
+
+    all_fields = original_fields + new_fields
+
+    # Check all fields exist in returned data
+    print("\nChecking field presence:")
+    missing_fields = []
+    for field in all_fields:
+        if field not in data:
+            missing_fields.append(field)
+
+    if missing_fields:
+        print(f"❌ Missing fields: {missing_fields}")
+        return False
+
+    print(f"  ✓ All {len(all_fields)} fields present")
+
+    # Check total field count
+    total_fields = len(data)
+    print(f"  ✓ Total fields: {total_fields}")
+
+    if total_fields < 35:
+        print(f"❌ FAILED: Expected 35+ fields, got {total_fields}")
+        return False
+
+    # Check specific new fields have values (not all None)
+    fields_with_values = [f for f in new_fields if data.get(f) is not None]
+    print(f"  ✓ New fields with values: {len(fields_with_values)}/{len(new_fields)}")
+
+    if len(fields_with_values) < 20:
+        print(f"❌ FAILED: Expected at least 20 new fields with values, got {len(fields_with_values)}")
+        return False
+
+    # Check specific important fields
+    print("\nChecking key fields:")
+    checks = [
+        (data.get('business_summary'), "business_summary has content"),
+        (data.get('website'), "website has a URL"),
+        (data.get('industry'), "industry is set"),
+        (data.get('analyst_rating'), "analyst_rating has value"),
+    ]
+
+    all_ok = True
+    for value, description in checks:
+        status = "✓" if value else "✗"
+        print(f"  {status} {description}")
+        if not value:
+            all_ok = False
+
+    # Print some sample values
+    print("\nSample new field values:")
+    sample_fields = ['analyst_rating', 'industry', 'beta', 'recommendation_key', 'debt_to_equity']
+    for field in sample_fields:
+        value = data.get(field)
+        if isinstance(value, str) and len(value) > 50:
+            value = value[:50] + "..."
+        print(f"  {field}: {value}")
+
+    if all_ok:
+        print("\n✅ PASSED: All expanded Yahoo Finance fields present and populated")
+        return True
+    else:
+        print("\n❌ FAILED: Some key fields missing values")
+        return False
+
+
 if __name__ == "__main__":
     print("\n" + "="*80)
     print("REIT COMPONENT TESTING SUITE")
@@ -186,7 +294,8 @@ if __name__ == "__main__":
     tests = [
         test_single_reit_data,
         test_get_top_reits_by_market_cap,
-        test_multi_reit_analysis
+        test_multi_reit_analysis,
+        test_expanded_yahoo_finance_fields
     ]
 
     results = []
