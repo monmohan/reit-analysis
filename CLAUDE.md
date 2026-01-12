@@ -10,18 +10,14 @@ This is a **Singapore REIT Analysis Agent** built with LangGraph and Azure OpenA
 
 ### Environment Setup
 ```bash
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On macOS/Linux
-
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies and create venv (requires uv: https://docs.astral.sh/uv/)
+uv sync
 ```
 
 ### Running the Agent
 ```bash
 # Main execution
-python3 reit_info_agent.py
+uv run python reit_info_agent.py
 
 # Generates timestamped markdown report: reit_analysis_YYYYMMDD_HHMMSS.md
 ```
@@ -29,10 +25,10 @@ python3 reit_info_agent.py
 ### Testing
 ```bash
 # Run full test suite (3 tests: single REIT, ranking, multi-REIT workflow)
-python3 test_reit_components.py
+uv run python test_reit_components.py
 
 # Test specific components in Python REPL
-python3
+uv run python
 >>> from yahoo_finance_api import get_reit_info, get_reit_data_structured
 >>> get_reit_info("C38U.SI")  # CapitaLand Ascendas REIT
 ```
@@ -43,7 +39,7 @@ python3
 nano prompts/reit_audit_prompt.txt
 
 # Then re-run agent
-python3 reit_info_agent.py
+uv run python reit_info_agent.py
 ```
 
 ## Architecture Overview
@@ -115,37 +111,9 @@ Tool Results → LLM Synthesis → Markdown Report
 ### Division of Labor
 - **Python handles**: Deterministic operations (data fetching, arithmetic, market cap ranking) → 100% accurate
 - **LLM handles**: Qualitative reasoning (business model analysis, risk assessment, investment recommendations) → Creative/nuanced
-
-### Dual Data Formats
-`yahoo_finance_api.py` provides two interfaces:
-- `get_reit_data_structured()` → Dict for Python logic (sorting, filtering)
-- `get_reit_info()` → Formatted string for LLM readability
-
-### Report Generation as Post-Processing
-Rather than returning analysis directly:
-1. Capture raw tool output (quantitative rankings table)
-2. Capture LLM synthesis (qualitative analysis)
-3. Combine both in timestamped markdown report
-4. Preserves data integrity while allowing narrative interpretation
-
-### Conditional Tool Routing
-```python
-def router(state: AgentState):
-    last_message = state["messages"][-1]
-    if last_message.tool_calls:
-        return "tools"
-    return END
-```
-Automatically routes based on LLM's decision, enabling self-directed multi-turn workflows.
+- Automatically routes based on LLM's decision, enabling self-directed multi-turn workflows.
 
 
-## Key Financial Metrics
 
-The system fetches these metrics per REIT:
-- **Current Price** & **Market Cap** - Size and valuation
-- **Price-to-Book (P/B) Ratio** - Value indicator (below 1.0 = trading below book value)
-- **Gearing Ratio** - Debt/Total Assets (40%+ triggers safety concerns)
-- **Dividend Yield** - Last 5 years with yield calculations
-- **YTD Performance** - Year-to-date price change percentage
 
 
