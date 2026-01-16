@@ -1,0 +1,134 @@
+{
+  "C38U.SI": {
+    "name": "CapitaLand Integrated Commercial Trust",
+    "website": "https://www.cict.com.sg",
+    "quarterly_url": "https://investor.cict.com.sg/financial_results.html",
+    "quarterly_pattern": "(?i)\\d{8}_\\d{6}_c38u_[A-Z0-9]+\\.(\\d+\\.)?pdf",
+    "sample_pdfs": [
+      "https://investor.cict.com.sg/newsroom/20251028_070012_C38U_F3Q4RGWG1OAFZ3VC.1.pdf",
+      "https://investor.cict.com.sg/newsroom/20250805_074441_C38U_6OVAX67GYZZMAONE.2.pdf",
+      "https://investor.cict.com.sg/newsroom/20250805_074441_C38U_6OVAX67GYZZMAONE.1.pdf",
+      "https://investor.cict.com.sg/newsroom/20250805_074441_C38U_6OVAX67GYZZMAONE.3.pdf",
+      "https://investor.cict.com.sg/newsroom/20250425_063644_C38U_FXHW8LSHBBAEJBT0.1.pdf"
+    ],
+    "confidence": "high",
+    "last_researched": "2026-01-14"
+  },
+  "A17U.SI": {
+    "name": "CapitaLand Ascendas REIT",
+    "website": "https://www.capitaland-ascendasreit.com",
+    "quarterly_url": "https://investor.capitaland-ascendasreit.com/financials.html",
+    "quarterly_pattern": "(?i)\\d{8}_\\d{6}_a17u_[A-Z0-9]+\\.(\\d+\\.)?pdf",
+    "sample_pdfs": [
+      "https://investor.capitaland-ascendasreit.com/newsroom/20251031_175107_A17U_2Z3AW6V1D9XNIAJ7.1.pdf",
+      "https://investor.capitaland-ascendasreit.com/newsroom/20250804_172947_A17U_1SFB2PZ1JWR3XLSU.2.pdf",
+      "https://investor.capitaland-ascendasreit.com/newsroom/20250804_172947_A17U_1SFB2PZ1JWR3XLSU.1.pdf",
+      "https://investor.capitaland-ascendasreit.com/newsroom/20250804_172947_A17U_1SFB2PZ1JWR3XLSU.3.pdf",
+      "https://investor.capitaland-ascendasreit.com/misc/Supplementary-Information-1H2025-Financial-Results_final.pdf"
+    ],
+    "confidence": "high",
+    "last_researched": "2026-01-14"
+  },
+  "N2IU.SI": {
+    "name": "Mapletree Pan Asia Commercial Trust",
+    "website": "https://www.mapletreepact.com",
+    "quarterly_url": "https://investor.mapletreepact.com/financial-results.html",
+    "quarterly_pattern": "(?i)\\d{8}_\\d{6}_n2iu_[A-Z0-9]+\\.(\\d+\\.)?pdf",
+    "sample_pdfs": [
+      "https://investor.mapletreepact.com/newsroom/20251022_174814_N2IU_RSO9M5FJCQ0PWK0I.1.pdf",
+      "https://investor.mapletreepact.com/newsroom/20251022_174814_N2IU_RSO9M5FJCQ0PWK0I.2.pdf",
+      "https://investor.mapletreepact.com/newsroom/20251022_174814_N2IU_RSO9M5FJCQ0PWK0I.3.pdf",
+      "https://investor.mapletreepact.com/newsroom/20251022_175040_N2IU_M2MNLLNUFHTYORAG.1.pdf",
+      "https://investor.mapletreepact.com/newsroom/20250730_174623_N2IU_7BP10LWUMVQD4DMJ.1.pdf"
+    ],
+    "confidence": "high",
+    "last_researched": "2026-01-14"
+  },
+  "M44U.SI": {
+    "name": "Mapletree Logistics Trust",
+    "website": "https://www.mapletreelogisticstrust.com",
+    "quarterly_url": "https://investor.mapletreelogisticstrust.com/financial-results.html",
+    "quarterly_pattern": "(?i)\\d{8}_\\d{6}_m44u_[A-Z0-9]+\\.(\\d+\\.)?pdf",
+    "sample_pdfs": [
+      "https://mapletreelogisticstrust.listedcompany.com/newsroom/20251028_183028_M44U_FE5H84N9IC20VHZV.1.pdf",
+      "https://mapletreelogisticstrust.listedcompany.com/newsroom/20251028_183028_M44U_FE5H84N9IC20VHZV.2.pdf",
+      "https://mapletreelogisticstrust.listedcompany.com/newsroom/20251028_183028_M44U_FE5H84N9IC20VHZV.3.pdf",
+      "https://investor.mapletreelogisticstrust.com/newsroom/20250723_184346_M44U_356EIPAY47TE28JH.1.pdf",
+      "https://investor.mapletreelogisticstrust.com/newsroom/20250723_184346_M44U_356EIPAY47TE28JH.2.pdf"
+    ],
+    "confidence": "high",
+    "last_researched": "2026-01-14"
+  },
+  "ME8U.SI": {
+    "name": "Mapletree Industrial Trust",
+    "website": "https://www.mapletreeindustrialtrust.com",
+    "quarterly_url": "https://investor.mapletreeindustrialtrust.com/financial-results.html",
+    "quarterly_pattern": "(?i)\\d{8}_\\d{6}_me8u_[A-Z0-9]+\\.(\\d+\\.)?pdf",
+    "sample_pdfs": [
+      "https://investor.mapletreeindustrialtrust.com/newsroom/20251029_203127_ME8U_GSS4AQL4MB7TOW9L.2.pdf",
+      "https://investor.mapletreeindustrialtrust.com/newsroom/20251029_203127_ME8U_GSS4AQL4MB7TOW9L.3.pdf",
+      "https://investor.mapletreeindustrialtrust.com/newsroom/20251029_203127_ME8U_GSS4AQL4MB7TOW9L.1.pdf",
+      "https://investor.mapletreeindustrialtrust.com/newsroom/20250728_204932_ME8U_SRXKKPUNGMZB8LW5.2.pdf",
+      "https://investor.mapletreeindustrialtrust.com/newsroom/20250728_204932_ME8U_SRXKKPUNGMZB8LW5.3.pdf"
+    ],
+    "confidence": "high",
+    "last_researched": "2026-01-14"
+  },
+  "BUOU.SI": {
+    "name": "Frasers Logistics & Commercial Trust",
+    "website": "https://www.frasersproperty.com/reits/flct",
+    "quarterly_url": "https://flct.frasersproperty.com/financials.html",
+    "quarterly_pattern": "(?i)\\d{8}_\\d{6}_buou_[A-Z0-9]+\\.(\\d+\\.)?pdf",
+    "sample_pdfs": [
+      "https://flct.frasersproperty.com/newsroom/20251107_074306_BUOU_WKFS34K5F6T83U1G.1.pdf",
+      "https://flct.frasersproperty.com/newsroom/20251107_074306_BUOU_WKFS34K5F6T83U1G.2.pdf",
+      "https://flct.frasersproperty.com/newsroom/20251107_074306_BUOU_WKFS34K5F6T83U1G.3.pdf",
+      "https://flct.frasersproperty.com/newsroom/20250731_203303_BUOU_JT05XV4ZCV7E14XB.1.pdf",
+      "https://flct.frasersproperty.com/newsroom/20250507_073244_BUOU_UDL9PAGJ8X7QGZG1.1.pdf"
+    ],
+    "confidence": "high",
+    "last_researched": "2026-01-14"
+  },
+  "J69U.SI": {
+    "name": "Frasers Centrepoint Trust",
+    "website": "https://www.frasersproperty.com/reits/fct",
+    "quarterly_url": "https://fct.frasersproperty.com/financial_results.html",
+    "quarterly_pattern": "(?i)\\d{8}_\\d{6}_j69u_[A-Z0-9]+\\.(\\d+\\.)?pdf",
+    "sample_pdfs": [
+      "https://fct.frasersproperty.com/newsroom/20251023_073019_J69U_M8XYO65P23VUO85Q.1.pdf",
+      "https://fct.frasersproperty.com/newsroom/20251023_073019_J69U_M8XYO65P23VUO85Q.2.pdf",
+      "https://fct.frasersproperty.com/newsroom/20251023_073019_J69U_M8XYO65P23VUO85Q.3.pdf",
+      "https://fct.frasersproperty.com/newsroom/20250724_184507_J69U_T8RWU0FTLK0A8U04.1.pdf",
+      "https://fct.frasersproperty.com/newsroom/20250429_072723_J69U_QTEE4TO50HRSNWLE.1.pdf"
+    ],
+    "confidence": "high",
+    "last_researched": "2026-01-14"
+  },
+  "AJBU.SI": {
+    "name": "Keppel DC REIT",
+    "website": "https://www.keppeldcreit.com",
+    "quarterly_url": "https://www.keppeldcreit.com/en/investor-relations/financials/financial-results/",
+    "quarterly_pattern": "(?i)kdcreit.*\\.pdf",
+    "sample_pdfs": [
+      "https://www.keppeldcreit.com/en/file/investor-relations/financial-results/2025/kdcreit-3q-operational-updates-presentation.pdf",
+      "https://www.keppeldcreit.com/en/file/investor-relations/financial-results/2025/kdcreit-1h-2025-results-presentation.pdf",
+      "https://www.keppeldcreit.com/en/file/investor-relations/financial-results/2025/kdcreit-1h-2025-financial-statements.pdf",
+      "https://www.keppeldcreit.com/en/file/investor-relations/financial-results/2025/kdcreit-1q-2025-operational-updates-presentation.pdf"
+    ],
+    "confidence": "high",
+    "last_researched": "2026-01-15"
+  },
+  "K71U.SI": {
+    "name": "Keppel REIT",
+    "website": "https://www.keppelreit.com",
+    "quarterly_url": "https://www.keppelreit.com/investor-relations/financial-information/financial-results/",
+    "quarterly_pattern": "(?i)kreit.*\\.pdf",
+    "sample_pdfs": [
+      "https://www.keppelreit.com/file/investor-relations/financial-information/financial-results/2025/3q-2025/kreit-3q-2025-presentation-slides.pdf",
+      "https://www.keppelreit.com/file/investor-relations/financial-information/financial-results/2025/2q-2025/kreit-1h-2025-presentation-slides.pdf",
+      "https://www.keppelreit.com/file/investor-relations/financial-information/financial-results/2025/1q-2025/kreit-1q-2025-presentation-slides.pdf"
+    ],
+    "confidence": "high",
+    "last_researched": "2026-01-15"
+  }
+}

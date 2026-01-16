@@ -4,33 +4,29 @@ You are analyzing {company_name} ({ticker}) to determine if it qualifies as a SW
 
 **HARD REQUIREMENTS (Must meet ALL):**
 1. **Tier 1 Sponsor** - CapitaLand, Mapletree, Frasers, or Keppel only
-2. **Low Gearing** - Below 40%
-3. **Strong ICR** - Above 3.5x
+2. **Low Gearing** - Below 50%
+3. **Strong ICR** - Above 3.0x
 4. **Low Volatility** - Beta below 0.8
 5. **Stable DPU** - No consecutive dividend cuts in past 3 years (check dividend history)
 
-**SOFT REQUIREMENT (Nice to have):**
+**SOFT REQUIREMENTS (Enhance score if met):**
 6. **Essential Tenants** - Supermarkets, healthcare, logistics, data centers, government
+7. **High Occupancy** - Above 95%
+8. **Long WALE** - Above 3 years
+9. **Positive Rent Reversion** - Indicates pricing power
 
-**IMPORTANT:** If criteria 1-5 are met, set swan_qualified=true even if tenant info is unavailable from web search. Tenant info enhances the analysis but should NOT disqualify a REIT that passes all hard requirements.
+## Data Status: {data_status}
 
-## Yahoo Finance Data for {ticker}
-
-{yahoo_data_formatted}
+{combined_data_formatted}
 
 ## Your Task
 
-**STEP 1: Call the web search tool**
-You MUST call search_reit_qualitative_info to get tenant information, property details, and recent news.
+Analyze the data above and evaluate whether this REIT qualifies as a SWAN candidate.
 
-Call it with:
-- ticker: "{ticker}"
-- company_name: "{company_name}"
-
-**STEP 2: Evaluate against SWAN criteria**
-After getting web search results, evaluate whether this REIT qualifies as a SWAN candidate.
-
-**STEP 3: Return JSON output**
+**IMPORTANT:**
+- If data_status is "partial", note that quarterly operational metrics may be missing
+- Base your analysis on the available data
+- Be explicit about which criteria you can/cannot verify due to data limitations
 
 ## Required Output Format (MUST be valid JSON)
 
@@ -45,28 +41,37 @@ After getting web search results, evaluate whether this REIT qualifies as a SWAN
     "icr": number or null,
     "beta": number or null,
     "current_yield": number or null,
+    "occupancy": number or null,
+    "wale": number or null,
     "sponsor": "sponsor name",
     "sponsor_tier": 1, 2, or 3
   }},
-  "tenants_found": ["list", "of", "actual", "tenant", "names"],
-  "key_properties": ["list", "of", "property", "names"],
+  "tenants_found": ["list", "of", "actual", "tenant", "names from quarterly data"],
+  "key_strengths": ["list", "of", "key", "strengths"],
+  "key_risks": ["list", "of", "key", "risks"],
   "dpu_trend": "stable/growing/declining",
-  "rationale": "2-3 paragraphs explaining your SWAN assessment with SPECIFIC details from the web search. Include actual tenant names, DPU figures, and why this REIT would or would not let retirees sleep well at night."
+  "rationale": "2-3 paragraphs explaining your SWAN assessment with SPECIFIC details. Include actual tenant names, occupancy figures, WALE, rent reversion data, and why this REIT would or would not let retirees sleep well at night."
 }}
 ```
 
 ## Scoring Guide
 
-- 9-10: Exceptional SWAN - All criteria met, Tier 1 sponsor, very low gearing, essential tenants
+- 9-10: Exceptional SWAN - All criteria met, Tier 1 sponsor, very low gearing, essential tenants, high occupancy
 - 7-8: Strong SWAN - Most criteria met, minor concerns
 - 5-6: Borderline - Some SWAN qualities but notable risks
 - 3-4: Weak candidate - Multiple SWAN criteria fail
 - 1-2: Not a SWAN - High risk, avoid for conservative investors
 
+## Sponsor Tier Classification
+
+- **Tier 1**: CapitaLand, Mapletree, Frasers, Keppel (blue-chip)
+- **Tier 2**: Other established Singapore developers
+- **Tier 3**: Foreign sponsors or less established entities
+
 ## Important Notes
 
-- You MUST call the web search tool first before providing your analysis
-- Include SPECIFIC tenant names from web search (not generic phrases like "diversified tenants")
-- Include SPECIFIC DPU figures if available
-- If web search fails or returns limited info, note this in your rationale
+- Include SPECIFIC tenant names from quarterly data (not generic phrases like "diversified tenants")
+- Include SPECIFIC DPU figures from dividend history
+- Include operational metrics like occupancy, WALE, rent reversion when available
+- If quarterly data is not available, note this limitation in your rationale
 - Be honest about data limitations

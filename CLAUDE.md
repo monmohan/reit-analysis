@@ -1,119 +1,227 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-This is a **Singapore REIT Analysis Agent** built with LangGraph and Azure OpenAI. It fetches financial data for Singapore REITs from Yahoo Finance, ranks them by market cap, and provides AI-powered qualitative investment analysis using a "Fund Manager" persona.
+A **Singapore REIT Analysis Agent** using LangGraph Map-Reduce architecture. It combines Yahoo Finance data with quarterly PDF report extraction to provide AI-powered investment analysis using two strategies:
+
+- **SWAN Mode**: "Sleep Well At Night" conservative analysis for retirees seeking stable dividends
+- **VALUE Mode**: Value investing analysis for income investors seeking upside potential
 
 ## Development Commands
 
 ### Environment Setup
 ```bash
-# Install dependencies and create venv (requires uv: https://docs.astral.sh/uv/)
+# Install dependencies (requires uv: https://docs.astral.sh/uv/)
 uv sync
 ```
 
 ### Running the Agent
 ```bash
-# Main execution
+# SWAN mode (default) - conservative analysis
 uv run python reit_info_agent.py
 
-# Generates timestamped markdown report: reit_analysis_YYYYMMDD_HHMMSS.md
+# VALUE mode - value investing analysis
+uv run python reit_info_agent.py --mode value
+
+# Custom parameters
+uv run python reit_info_agent.py --mode swan --top 5 --reits 15
+
+# Non-interactive mode (skip user preference prompts)
+uv run python reit_info_agent.py --no-input
+```
+
+### PDF Data Pipeline
+```bash
+# Download quarterly PDFs for all REITs
+uv run python pdf_downloader.py --all
+
+# Download for single REIT
+uv run python pdf_downloader.py C38U.SI
+
+# Extract data from PDFs
+uv run python quarterly_parser.py C38U.SI
+
+# Check cache status
+uv run python data_cache.py
+
+# Discover new REIT IR URLs
+uv run python tools/research_ir_urls.py C38U.SI
 ```
 
 ### Testing
 ```bash
-# Run full test suite (3 tests: single REIT, ranking, multi-REIT workflow)
+# Parser tests
+uv run python test_quarterly_parser.py
+
+# Component tests
 uv run python test_reit_components.py
-
-# Test specific components in Python REPL
-uv run python
->>> from yahoo_finance_api import get_reit_info, get_reit_data_structured
->>> get_reit_info("C38U.SI")  # CapitaLand Ascendas REIT
-```
-
-### Modifying Agent Behavior
-```bash
-# Edit prompt template (no code changes needed)
-nano prompts/reit_audit_prompt.txt
-
-# Then re-run agent
-uv run python reit_info_agent.py
 ```
 
 ## Architecture Overview
 
-### Three-Layer Architecture
+### Map-Reduce Agent Pattern
 
-**Data Layer** - Financial data fetching and REIT discovery:
-- `yahoo_finance_api.py` - Yahoo Finance interface with two output modes:
-  - `get_reit_data_structured()` → Dict (for programmatic use)
-  - `get_reit_info()` → formatted string (for LLM consumption)
-- `singapore_reits.py` - Curated list of 24 Singapore REIT tickers + market cap ranking
-- `gemini_yfin.py` - Lightweight fallback implementation
-
-**Auth Layer** - Azure authentication:
-- `azure_auth.py` - Azure AD OAuth 2.0 token provider for OpenAI API access
-
-**Agent Layer** - AI orchestration:
-- `reit_info_agent.py` - Main entry point using LangGraph StateGraph pattern
-- `prompt_tool.py` - Reusable agent framework template (educational reference)
-
-### Key Architectural Patterns
-
-**Agent-Based Orchestration (LangGraph)**:
 ```
-Agent Node → Router → Tool Node → Agent Node (loop until completion)
-```
-- Agent evaluates request and decides whether to call tools
-- Router uses conditional edges based on `tool_calls` presence
-- Tools execute, results feed back to agent for synthesis
-
-**Tool-Augmented LLM**:
-Two tools bound to Azure OpenAI:
-1. `get_reit_info(ticker)` - Single REIT lookup
-2. `analyze_top_singapore_reits(limit)` - Batch analysis with market cap rankings
-
-**Message Accumulation Pattern**:
-```python
-class AgentState(TypedDict):
-    messages: Annotated[List[BaseMessage], operator.add]
-```
-Uses `operator.add` as reducer to automatically append messages, preserving full conversation context through multi-turn interactions.
-
-**External Prompt Management**:
-- Prompts live in `prompts/reit_audit_prompt.txt` (not hardcoded)
-- Enables behavior modification without code changes
-- Current persona: "veteran Fund Manager" with 3-tier analysis framework
-
-**Data Flow**:
-```
-User Input
-    ↓
-reit_info_agent.py (LangGraph orchestrator)
-    ↓
-Azure OpenAI LLM ← Azure AD Token
-    ↓
-Tool Decision
-    ├→ get_reit_info() → yahoo_finance_api.py
-    └→ analyze_top_singapore_reits()
-       ├→ singapore_reits.get_top_reits_by_market_cap()
-       └→ yahoo_finance_api.get_reit_data_structured() per ticker
-           ↓
-           yfinance.Ticker API
-    ↓
-Tool Results → LLM Synthesis → Markdown Report
+START
+  ↓
+setup_node
+  ├→ Fetch top N REITs by market cap
+  ├→ Get Yahoo Finance data (price, yield, gearing, ICR, DPU history)
+  ├→ Get quarterly PDF data (occupancy, WALE, tenants, rent reversion)
+  └→ Pre-filter (gearing > 50% or ICR < 2.0 → excluded)
+  ↓
+fan_out_to_mini_agents [PARALLEL]
+  └→ Send() spawns independent mini-agent per REIT
+  ↓
+mini_agent_node (parallel execution)
+  ├→ Load mode-specific prompt (swan/value)
+  ├→ Format combined Yahoo + quarterly data
+  ├→ LLM analyzes and outputs structured JSON
+  └→ Parse JSON result (swan_score/value_score, qualified, rationale)
+  ↓
+reduce_node
+  ├→ Filter to qualified REITs only
+  ├→ Sort by score descending
+  └→ Take top N
+  ↓
+report_node
+  ├→ Load reduce prompt template
+  ├→ LLM synthesizes individual analyses into final report
+  └→ Output markdown with rankings, deep dives, exclusions
+  ↓
+END → Save to results/
 ```
 
-## Critical Design Decisions
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `reit_info_agent.py` | Main orchestrator - LangGraph StateGraph, fan-out/fan-in |
+| `mini_agent.py` | Single REIT analyzer - stateless, receives pre-fetched data |
+| `yahoo_finance_api.py` | Yahoo Finance interface - price, yield, metrics, DPU history |
+| `quarterly_parser.py` | PDF extraction - occupancy, WALE, tenants, leverage |
+| `pdf_downloader.py` | Playwright-based PDF discovery and download |
+| `data_cache.py` | Caching layer with 7-day TTL |
+| `singapore_reits.py` | Curated list of 24 S-REITs with market cap ranking |
+| `tools.py` | Tool definitions (get_reit_info, analyze_top_reits, search_qualitative) |
+| `llm/llm_factory.py` | LLM factory - Azure OpenAI / Anthropic Claude |
+
+### Directory Structure
+
+```
+├── config/
+│   ├── llm_config.py        # LLM configuration loader
+│   └── reit_ir_urls.json    # REIT IR URLs and PDF patterns
+├── data/
+│   ├── pdf_cache/{ticker}/  # Downloaded quarterly PDFs
+│   └── extracted_data/      # Cached JSON extractions (7-day TTL)
+├── llm/
+│   └── llm_factory.py       # LLM provider factory
+├── prompts/
+│   ├── swan_single_reit_prompt.txt   # SWAN individual analysis
+│   ├── swan_reduce_prompt.txt        # SWAN report synthesis
+│   ├── value_single_reit_prompt.txt  # VALUE individual analysis
+│   └── value_reduce_prompt.txt       # VALUE report synthesis
+├── tools/
+│   └── research_ir_urls.py  # IR URL discovery utility
+└── results/                 # Generated reports
+```
+
+## Analysis Modes
+
+### SWAN Mode (Conservative)
+
+**Target Investor**: Retirees seeking capital preservation and stable dividends
+
+**Hard Requirements** (must meet ALL):
+1. Tier 1 Sponsor (CapitaLand, Mapletree, Frasers, Keppel)
+2. Gearing below 50%
+3. Interest Coverage Ratio (ICR) above 3.0x
+4. Low volatility (Beta below 0.8)
+5. Stable DPU - no consecutive dividend cuts in 3 years
+
+**Scoring Enhancers**: Essential tenants, occupancy > 95%, WALE > 3 years, positive rent reversion
+
+### VALUE Mode (Growth)
+
+**Target Investor**: Income investors seeking upside potential with margin of safety
+
+**Hard Requirements** (must meet ALL):
+1. P/B ratio below 0.9 (NAV discount)
+2. Dividend yield above 6%
+3. Gearing below 45%
+4. ICR above 2.5x
+5. DPU decline less than 30% over 3 years
+
+**Scoring Enhancers**: Deep P/B discount (< 0.75), yield > 7.5%, improving occupancy, analyst upside
+
+## PDF Data Pipeline
+
+### 1. Discovery (`tools/research_ir_urls.py`)
+- Uses Playwright to navigate REIT investor relations pages
+- Identifies quarterly report PDF patterns
+- Generates regex for automated matching
+- Saves configuration to `config/reit_ir_urls.json`
+
+### 2. Download (`pdf_downloader.py`)
+- Reads IR URLs from config
+- Discovers PDFs matching quarterly patterns
+- Resolves SGX tracker.pl redirect URLs
+- Parallel download (4 workers)
+- Caches to `data/pdf_cache/{ticker}/`
+
+### 3. Extraction (`quarterly_parser.py`)
+Extracts structured data from PDFs:
+- Occupancy rates (portfolio, office, retail)
+- WALE (Weighted Average Lease Expiry)
+- Top 10 tenants with sector and contribution %
+- Rent reversion by segment
+- Leverage (aggregate gearing)
+- Cost of debt
+
+### 4. Caching (`data_cache.py`)
+- 7-day TTL on extracted data
+- Auto-refresh on stale cache
+- Graceful fallback when PDFs unavailable
+
+## Configuration
+
+### LLM Configuration (`llm_config.json`)
+```json
+{
+  "primary_llm": {
+    "provider": "azure_openai",
+    "model": null,
+    "temperature": 1.0
+  }
+}
+```
+
+**Supported Providers**:
+- `azure_openai` - Uses AZURE_OPENAI_* env vars + Azure AD auth
+- `anthropic` - Uses ANTHROPIC_API_KEY env var
+
+### Environment Variables (`.env`)
+```
+AZURE_OPENAI_ENDPOINT=https://your-endpoint.openai.azure.com/
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
+AZURE_OPENAI_API_VERSION=2024-10-21
+AZURE_TENANT_ID=your-tenant-id
+AZURE_CLIENT_ID=your-client-id
+AZURE_CLIENT_SECRET=your-client-secret
+```
+
+## Design Principles
 
 ### Division of Labor
-- **Python handles**: Deterministic operations (data fetching, arithmetic, market cap ranking) → 100% accurate
-- **LLM handles**: Qualitative reasoning (business model analysis, risk assessment, investment recommendations) → Creative/nuanced
-- Automatically routes based on LLM's decision, enabling self-directed multi-turn workflows.
+- **Python handles**: Data fetching, arithmetic, market cap ranking, PDF extraction (deterministic)
+- **LLM handles**: Qualitative analysis, risk assessment, investment recommendations (creative/nuanced)
 
-
-
-
-
+### Key Patterns
+- **Map-Reduce**: Parallel mini-agents for scalable analysis
+- **Data Pre-fetching**: All data fetched before LLM analysis (no runtime tool calls)
+- **External Prompts**: Behavior modification without code changes
+- **Robust JSON Parsing**: Multi-stage extraction with control character sanitization
+- **Graceful Degradation**: Missing quarterly data → analysis continues with Yahoo only

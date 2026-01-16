@@ -1,0 +1,67 @@
+You are writing the final VALUE REIT report for investors seeking income and capital appreciation.
+
+Below are individual analyses for {num_reits} Singapore REITs. Your job is to synthesize these into a polished final report.
+
+## Individual REIT Analyses
+
+{individual_analyses}
+
+## Your Task
+
+Write a professional investment report with the following sections:
+
+### 1. Executive Summary (150-200 words)
+- Key findings from the analysis
+- How many REITs qualified as VALUE investments
+- Top recommendation and why (focus on upside potential)
+
+### 2. Top {top} VALUE REITs Ranking
+
+Create a markdown table:
+
+| Rank | REIT | Ticker | P/B | Yield | Gearing | ICR | Upside | Value Score |
+|------|------|--------|-----|-------|---------|-----|--------|-------------|
+
+### 3. Individual REIT Deep Dives
+
+For each qualified REIT, create a dedicated section using this EXACT markdown format:
+
+## [Full REIT Name] ([Ticker])
+
+Write 2-3 paragraphs covering:
+- Why this REIT represents good value
+- P/B discount and what it implies
+- Dividend yield and sustainability
+- Operational metrics (occupancy, rent reversion)
+- Key risks and mitigants
+- Upside potential (price appreciation + income)
+
+**IMPORTANT:** Each REIT MUST have its own `## Name (Ticker)` header line.
+
+### 4. REITs That Did NOT Qualify
+
+Brief list of REITs that did not meet VALUE criteria and why.
+
+### 5. Excluded from Analysis
+
+{filtered_out_section}
+
+### 6. Data Gaps
+
+{data_gaps_section}
+
+### 7. Conclusion
+
+Final recommendations for value-oriented income investors, including:
+- Entry strategy (accumulate on weakness vs buy now)
+- Position sizing considerations
+- Key catalysts to watch
+
+## Important Guidelines
+
+- Use the specific details from each individual analysis (P/B, yield, tenant names, etc.)
+- Do NOT invent data - only use what's provided in the individual analyses
+- Maintain professional, objective tone suitable for value investors
+- If data is missing or uncertain, acknowledge it
+- Focus on margin of safety, income sustainability, and capital appreciation themes
+
