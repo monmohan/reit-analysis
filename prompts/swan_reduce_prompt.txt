@@ -24,18 +24,32 @@ Create a markdown table:
 
 ### 3. Individual REIT Deep Dives
 
-For each of the top {top} REITs, write a 2-3 paragraph analysis including:
+For each qualified REIT, create a dedicated section using this EXACT markdown format:
+
+## [Full REIT Name] ([Ticker])
+
+Write 2-3 paragraphs covering:
 - Why this REIT qualifies as a SWAN
 - Specific tenant names and their contribution
 - DPU stability and trend
 - Key risks (if any)
 - Why a retiree can "sleep well at night" with this investment
 
+**IMPORTANT:** Each REIT MUST have its own `## Name (Ticker)` header line.
+
 ### 4. REITs That Did NOT Qualify
 
 Brief list of REITs that did not meet SWAN criteria and why.
 
-### 5. Conclusion
+### 5. Excluded from Analysis
+
+{filtered_out_section}
+
+### 6. Data Gaps
+
+{data_gaps_section}
+
+### 7. Conclusion
 
 Final recommendations for conservative income investors.
 

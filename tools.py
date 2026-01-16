@@ -4,15 +4,15 @@ Tool definitions for the REIT Analysis Agent.
 Contains tools that can be bound to the LLM for:
 - Fetching individual REIT data
 - Analyzing top Singapore REITs
-- Web search for qualitative information
+- Qualitative analysis from quarterly reports
 """
 import requests
 from bs4 import BeautifulSoup
 from langchain_core.tools import tool
-from duckduckgo_search import DDGS
 
 from yahoo_finance_api import get_reit_info as fetch_reit_info, get_reit_data_structured
 from singapore_reits import get_top_reits_by_market_cap
+from data_cache import get_reit_qualitative_data
 
 # Mapping of tickers to common short names/abbreviations for better search results
 REIT_SHORT_NAMES = {
@@ -231,125 +231,38 @@ def analyze_top_singapore_reits(limit: int = 20) -> str:
 @tool
 def search_reit_qualitative_info(ticker: str, company_name: str) -> str:
     """
-    Searches the web for qualitative information about a Singapore REIT and fetches full page content.
+    Gets qualitative information about a Singapore REIT from quarterly reports.
 
-    Use this tool to get deeper insights about a REIT beyond the quantitative metrics,
-    including:
+    This tool extracts data from downloaded quarterly investor presentations,
+    providing accurate, structured information including:
+    - Portfolio occupancy rates (retail, office, portfolio)
+    - Weighted Average Lease Expiry (WALE)
+    - Rent reversion rates
     - Top tenants and tenant mix
-    - Key assets and property locations
-    - Recent news (acquisitions, disposals, quarterly results)
-    - Sponsor information and asset pipeline
-    - Analyst commentary and ratings
+    - Leverage and cost of debt
+    - Market outlook (retail/office rents, GDP forecasts)
+
+    Data source: Official quarterly business updates from REIT investor relations.
 
     Args:
         ticker: The REIT's stock ticker (e.g., 'C38U.SI')
         company_name: The full company name (e.g., 'CapitaLand Integrated Commercial Trust')
 
     Returns:
-        Formatted string with qualitative information from web pages (not just snippets)
+        Formatted string with structured quarterly data for analysis
     """
-    print(f"\n[WEB SEARCH] Searching for qualitative info on {ticker} ({company_name})...")
+    print(f"\n[QUARTERLY DATA] Extracting data for {ticker} ({company_name})...")
 
     try:
-        ddgs = DDGS()
+        # Get quarterly data from cached or fresh extraction
+        data = get_reit_qualitative_data(ticker, company_name)
 
-        # Get short name for better search results
-        short_name = REIT_SHORT_NAMES.get(ticker, '')
-
-        # Build targeted search queries - use BOTH full name AND short name
-        # Always include "Singapore REIT" to filter out irrelevant results
-        queries = []
-
-        # Primary query with full name (most reliable)
-        queries.append(f'"{company_name}" Singapore tenants portfolio')
-
-        # If we have a short name, add combined query
-        if short_name:
-            queries.append(f'{short_name} "{company_name}" tenants top')
-
-        # Investor presentation query (best source for tenant data)
-        queries.append(f'"{company_name}" investor presentation annual report')
-
-        print(f"[WEB SEARCH] Short name: {short_name or 'N/A'}")
-
-        all_results = []
-
-        for query in queries:
-            print(f"[WEB SEARCH] Query: {query[:50]}...")
-            results = ddgs.text(query, max_results=2)
-            all_results.extend(results)
-
-        if not all_results:
-            return f"No web search results found for {company_name} ({ticker})"
-
-        # Deduplicate URLs and filter out irrelevant domains
-        seen_urls = set()
-        unique_results = []
-        blocked_domains = [
-            # Gaming/VPN/accelerator
-            'leigod.com', 'jiasu.', 'gaming', 'vpn', 'accelerator',
-            # Social/generic
-            'wikipedia.org', 'zhihu.com', 'sohu.com', 'espn',
-            'mail.google.com', 'chatgpt.com', 'openai.com',
-            'facebook.com', 'twitter.com', 'youtube.com',
-            'amazon.com', 'ebay.com', 'alibaba.com',
-            # Chinese/Russian spam
-            'yandex.', 'douyin.com', 'tiktok.com', 'weibo.com',
-            'baidu.com', 'qq.com', '163.com',
-            # Other irrelevant
-            'askfilo.com', 'quora.com', 'reddit.com',
-            'linkedin.com', 'instagram.com', 'pinterest.com'
-        ]
-
-        for result in all_results:
-            url = result.get('href', '')
-            if not url or url in seen_urls:
-                continue
-
-            # Skip irrelevant domains
-            if any(blocked in url.lower() for blocked in blocked_domains):
-                print(f"[WEB SEARCH] Skipping irrelevant: {url[:50]}...")
-                continue
-
-            seen_urls.add(url)
-            unique_results.append(result)
-
-        if not unique_results:
-            return f"No relevant web search results found for {company_name} ({ticker})"
-
-        # Format results with FULL PAGE CONTENT
-        output = f"\n{'='*80}\n"
-        output += f"QUALITATIVE RESEARCH: {company_name} ({ticker})\n"
-        output += f"{'='*80}\n\n"
-
-        # Fetch full content from top 2 most relevant pages
-        pages_to_fetch = unique_results[:2]
-
-        for i, result in enumerate(pages_to_fetch, 1):
-            title = result.get('title', 'No title')
-            url = result.get('href', '')
-
-            output += f"\n--- SOURCE {i}: {title} ---\n"
-            output += f"URL: {url}\n\n"
-
-            # Fetch full page content
-            print(f"[WEB SEARCH] Fetching content from: {url[:60]}...")
-            page_content = fetch_page_content(url, max_chars=6000)
-            output += f"CONTENT:\n{page_content}\n\n"
-
-        output += f"{'='*80}\n"
-        output += "\nEXTRACT FROM THE ABOVE:\n"
-        output += "- Specific tenant names and their % of NLA or gross rental income\n"
-        output += "- Property names and locations\n"
-        output += "- Recent DPU figures and trends\n"
-        output += "- Any risks or concerns mentioned\n"
-
-        print(f"[WEB SEARCH] Fetched full content from {len(pages_to_fetch)} pages for {ticker}")
-        return output
+        print(f"[QUARTERLY DATA] Extracted quarterly data for {ticker}")
+        return data
 
     except Exception as e:
-        error_msg = f"Error searching for {company_name}: {str(e)}"
-        print(f"[WEB SEARCH] {error_msg}")
+        error_msg = f"Error extracting quarterly data for {company_name}: {str(e)}"
+        print(f"[QUARTERLY DATA] {error_msg}")
         return error_msg
 
 

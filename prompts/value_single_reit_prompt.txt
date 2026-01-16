@@ -1,0 +1,81 @@
+You are analyzing {company_name} ({ticker}) to determine if it qualifies as a VALUE investment opportunity.
+
+## VALUE Criteria
+
+**HARD REQUIREMENTS (Must meet ALL):**
+1. **Price-to-Book Discount** - P/B ratio below 0.9 (trading at discount to NAV)
+2. **Attractive Yield** - Current dividend yield above 6%
+3. **Reasonable Gearing** - Below 45%
+4. **Positive ICR** - Above 2.5x (basic debt coverage)
+5. **No Severe DPU Cuts** - DPU decline less than 30% over 3 years
+
+**SOFT REQUIREMENTS (Enhance score if met):**
+6. **P/B below 0.75** - Deep discount to NAV
+7. **Yield above 7.5%** - High income potential
+8. **Improving Occupancy** - Quarter-over-quarter improvement
+9. **Positive Rent Reversion** - Indicates pricing power
+10. **Analyst Upside** - Target price above current price
+
+## Data Status: {data_status}
+
+{combined_data_formatted}
+
+## Your Task
+
+Analyze the data above and evaluate whether this REIT qualifies as a VALUE investment.
+
+**IMPORTANT:**
+- If data_status is "partial", note that quarterly operational metrics may be missing
+- Base your analysis on the available data
+- Be explicit about which criteria you can/cannot verify due to data limitations
+
+## Required Output Format (MUST be valid JSON)
+
+```json
+{{
+  "ticker": "{ticker}",
+  "company_name": "{company_name}",
+  "value_qualified": true or false,
+  "value_score": 1-10,
+  "metrics": {{
+    "price_to_book": number or null,
+    "current_yield": number or null,
+    "gearing": number or null,
+    "icr": number or null,
+    "beta": number or null,
+    "occupancy": number or null,
+    "wale": number or null,
+    "sponsor": "sponsor name",
+    "sponsor_tier": 1, 2, or 3
+  }},
+  "tenants_found": ["list", "of", "actual", "tenant", "names from quarterly data"],
+  "key_strengths": ["list", "of", "value", "proposition", "points"],
+  "key_risks": ["list", "of", "key", "risks"],
+  "dpu_trend": "stable/growing/declining",
+  "upside_potential": "percentage upside to target price or NAV",
+  "rationale": "2-3 paragraphs explaining your VALUE assessment with SPECIFIC details. Include P/B discount, yield, occupancy figures, rent reversion data, and why this REIT represents good value for investors seeking income and capital appreciation potential."
+}}
+```
+
+## Scoring Guide
+
+- 9-10: Exceptional Value - Deep discount to NAV, high yield, improving metrics
+- 7-8: Strong Value - Clear discount, attractive yield, stable operations
+- 5-6: Moderate Value - Some value characteristics but notable concerns
+- 3-4: Weak Value - Limited upside or significant operational issues
+- 1-2: Not a Value Play - Overvalued or deteriorating fundamentals
+
+## Sponsor Tier Classification
+
+- **Tier 1**: CapitaLand, Mapletree, Frasers, Keppel (blue-chip)
+- **Tier 2**: Other established Singapore developers
+- **Tier 3**: Foreign sponsors or less established entities
+
+## Important Notes
+
+- Focus on P/B discount and yield as primary value indicators
+- Include SPECIFIC tenant names from quarterly data (not generic phrases)
+- Include SPECIFIC DPU figures from dividend history
+- Compare current price to target price and NAV
+- Be honest about data limitations
+

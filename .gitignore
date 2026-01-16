@@ -16,6 +16,10 @@ __pycache__/
 # Generated reports
 reit_analysis_*.md
 
+# PDF cache and extracted data
+data/pdf_cache/
+data/extracted_data/
+
 # IDE
 .vscode/
 .idea/
