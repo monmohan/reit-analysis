@@ -5,6 +5,9 @@ Data Cache Module
 Manages cached quarterly data for REIT analysis.
 Provides fresh or cached data to the agent tools.
 
+Includes LLM-based summarization for earlier quarters to provide
+trend context while staying within token budgets.
+
 Usage:
     from data_cache import get_reit_qualitative_data
     data = get_reit_qualitative_data("C38U.SI")
@@ -16,12 +19,33 @@ from pathlib import Path
 from typing import Optional
 
 from quarterly_parser import extract_all_quarters, format_for_llm, get_quarterly_pdfs
+from llm.llm_factory import get_fast_llm
 
 
-# Paths
+# Prompt for summarizing earlier quarters for trend context
+SUMMARIZATION_PROMPT = """Summarize this REIT quarterly report for trend analysis.
+
+Focus on:
+1. Management commentary and tone (optimistic, cautious, concerned)
+2. Key operational changes vs previous quarter
+3. Notable events (acquisitions, divestments, refinancing, tenant changes)
+4. Risk disclosures and concerns mentioned
+5. Guidance and outlook statements
+
+Output a 500-700 word summary capturing the quarter's narrative and key developments.
+Focus on QUALITATIVE information - management tone, strategic direction, concerns.
+Do NOT just repeat numerical metrics.
+
+QUARTERLY REPORT TEXT:
+{text}
+"""
+
+
+# Paths - shared data directory outside repo for persistence
 CONFIG_PATH = Path(__file__).parent / "config" / "reit_ir_urls.json"
-CACHE_DIR = Path(__file__).parent / "data" / "pdf_cache"
-EXTRACTED_DIR = Path(__file__).parent / "data" / "extracted_data"
+SHARED_DATA_DIR = Path.home() / "code" / "agents" / "reit-data"
+CACHE_DIR = SHARED_DATA_DIR / "pdf_cache"
+EXTRACTED_DIR = SHARED_DATA_DIR / "extracted_data"
 
 
 def load_config() -> dict:
@@ -77,13 +101,51 @@ def has_quarterly_pdfs(ticker: str) -> bool:
     return len(pdfs) > 0
 
 
+def summarize_quarter(full_text: str, quarter_label: str = "") -> str:
+    """
+    Generate LLM summary of quarterly report for trend context.
+
+    Uses fast/cheap model to minimize cost. Summaries are cached
+    alongside the extracted data.
+
+    Args:
+        full_text: Full PDF text from quarterly report
+        quarter_label: Label like "2Q 2025" for logging
+
+    Returns:
+        500-700 word summary focusing on qualitative information
+    """
+    if not full_text or len(full_text) < 500:
+        return "Insufficient report text available for summarization."
+
+    try:
+        llm = get_fast_llm()
+
+        # Truncate if extremely long (>100K chars) to stay within context
+        text_to_summarize = full_text[:100000]
+
+        prompt = SUMMARIZATION_PROMPT.format(text=text_to_summarize)
+        response = llm.invoke(prompt)
+
+        summary = response.content
+        print(f"[SUMMARIZE] Generated summary for {quarter_label} ({len(summary)} chars)")
+        return summary
+
+    except Exception as e:
+        print(f"[SUMMARIZE] Error summarizing {quarter_label}: {e}")
+        return f"Summary generation failed: {str(e)}"
+
+
 def get_reit_quarterly_structured(
     ticker: str,
     force_refresh: bool = False,
     num_quarters: int = 4,
 ) -> Optional[dict]:
     """
-    Get structured quarterly data for a REIT (not formatted text).
+    Get structured quarterly data for a REIT with LLM summaries for trend context.
+
+    For the LATEST quarter: keeps full_text for deep qualitative analysis
+    For EARLIER quarters: generates LLM summaries for trend context
 
     Returns dict with quarters data, or None if no data available.
     Used by setup_node to combine with Yahoo data.
@@ -92,16 +154,37 @@ def get_reit_quarterly_structured(
     if not has_quarterly_pdfs(ticker):
         return None
 
-    # Check cache first
+    # Check cache first - verify it has summaries for earlier quarters
     if not force_refresh:
         cached = get_cached_data(ticker)
         if cached and cached.get("quarters"):
-            return cached
+            # Check if earlier quarters already have summaries
+            quarters = cached.get("quarters", [])
+            has_summaries = all(
+                q.get("summary") for q in quarters[1:]  # Check Q-1, Q-2, Q-3
+            ) if len(quarters) > 1 else True
 
-    # Extract fresh data
+            if has_summaries:
+                return cached
+            else:
+                print(f"[CACHE] {ticker} cache missing summaries, regenerating...")
+
+    # Extract fresh data from PDFs
+    print(f"[EXTRACT] Extracting quarterly data for {ticker}...")
     data = extract_all_quarters(ticker, num_quarters)
 
-    # Only cache if we got quarters
+    # Generate summaries for earlier quarters (not the latest)
+    quarters = data.get("quarters", [])
+    if len(quarters) > 1:
+        print(f"[SUMMARIZE] Generating summaries for {len(quarters) - 1} earlier quarters...")
+        for i, quarter in enumerate(quarters[1:], start=1):
+            full_text = quarter.get("full_text", "")
+            quarter_label = quarter.get("quarter", f"Q-{i}")
+
+            if full_text and not quarter.get("summary"):
+                quarter["summary"] = summarize_quarter(full_text, quarter_label)
+
+    # Cache the data with summaries
     if data.get("quarters"):
         save_to_cache(ticker, data)
         return data

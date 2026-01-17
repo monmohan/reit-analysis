@@ -20,10 +20,11 @@ from typing import Optional
 import pdfplumber
 
 
-# Paths
+# Paths - shared data directory outside repo for persistence
 CONFIG_PATH = Path(__file__).parent / "config" / "reit_ir_urls.json"
-CACHE_DIR = Path(__file__).parent / "data" / "pdf_cache"
-EXTRACTED_DIR = Path(__file__).parent / "data" / "extracted_data"
+SHARED_DATA_DIR = Path.home() / "code" / "agents" / "reit-data"
+CACHE_DIR = SHARED_DATA_DIR / "pdf_cache"
+EXTRACTED_DIR = SHARED_DATA_DIR / "extracted_data"
 
 
 def load_config() -> dict:
@@ -391,6 +392,7 @@ def extract_quarterly_data(pdf_path: Path) -> dict:
         "source_file": pdf_path.name,
         "report_date": None,
         "quarter": None,
+        "full_text": "",  # Raw PDF text for LLM deep analysis
         "operational_metrics": {},
         "capital_metrics": {},
         "market_data": {},
@@ -407,6 +409,9 @@ def extract_quarterly_data(pdf_path: Path) -> dict:
                 page_text = page.extract_text() or ""
                 full_text += page_text + "\n"
                 page_texts[i + 1] = page_text
+
+            # Store full text for LLM deep analysis
+            result["full_text"] = full_text
 
             # Extract report metadata
             result["report_date"] = extract_report_date(full_text)

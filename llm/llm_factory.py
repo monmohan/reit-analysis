@@ -78,3 +78,49 @@ def _create_anthropic_llm(model: str | None, temperature: float) -> BaseChatMode
         temperature=temperature,
         max_tokens=4096
     )
+
+
+def get_fast_llm() -> BaseChatModel:
+    """
+    Get a fast/cheap LLM for auxiliary tasks like summarization.
+
+    Uses Azure OpenAI (preferred) or Claude Haiku as fallback.
+    Azure is preferred because it uses the same auth as the main agent.
+
+    Returns:
+        BaseChatModel configured for fast, cheap inference
+    """
+    # Prefer Azure OpenAI (uses same auth infrastructure)
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    if azure_endpoint:
+        from langchain_openai import AzureChatOpenAI
+        from azure_auth import get_azure_ad_token
+
+        # Use main deployment for summarization (GPT-4o or similar)
+        deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
+
+        return AzureChatOpenAI(
+            azure_deployment=deployment,
+            api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+            azure_endpoint=azure_endpoint,
+            azure_ad_token_provider=get_azure_ad_token,
+            # Note: Some Azure models (o1, o3) don't support temperature
+        )
+
+    # Fall back to Anthropic Claude Haiku
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    if anthropic_key:
+        try:
+            from langchain_anthropic import ChatAnthropic
+            return ChatAnthropic(
+                model="claude-3-5-haiku-20241022",
+                api_key=anthropic_key,
+                temperature=0.3,
+                max_tokens=2048,
+            )
+        except ImportError:
+            pass
+
+    raise ValueError(
+        "No LLM credentials available. Set AZURE_OPENAI_ENDPOINT or ANTHROPIC_API_KEY."
+    )

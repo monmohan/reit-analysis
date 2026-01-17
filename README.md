@@ -1,33 +1,29 @@
 # Singapore REIT Analysis Agent
 
-An AI-powered agent built with LangGraph and Azure OpenAI that analyzes Singapore REITs (Real Estate Investment Trusts) and provides investment recommendations tailored for conservative income-focused investors.
+An AI-powered agent built with LangGraph Map-Reduce architecture that analyzes Singapore REITs using Yahoo Finance data combined with quarterly PDF report extraction.
 
 ## Overview
 
-This agent combines **deterministic financial data fetching** from Yahoo Finance with **AI-powered qualitative analysis** to help investors—particularly retirees—identify "SWAN" (Sleep Well At Night) dividend-paying REITs in the Singapore market.
+This agent combines **deterministic financial data** from Yahoo Finance with **operational insights** extracted from quarterly PDF reports to provide AI-powered investment analysis. It supports two analysis modes:
 
-The system fetches real-time data for 24 Singapore-listed REITs, ranks them by market capitalization, and applies a 3-Tier Retiree Safety Framework to categorize investments:
-
-- **SWAN List** - Low volatility, Tier 1 sponsors, essential tenants
-- **Value List** - Fundamentally strong REITs trading at a discount
-- **Red Flags** - REITs to avoid with explicit risk warnings
+- **SWAN Mode** - "Sleep Well At Night" conservative analysis for retirees seeking stable dividends
+- **VALUE Mode** - Value investing analysis for income investors seeking upside potential with margin of safety
 
 ## Features
 
-- **Comprehensive Data Fetching** - Retrieves financial metrics for 24 Singapore REITs from Yahoo Finance
-- **Market Cap Ranking** - Automatically ranks REITs by market capitalization
-- **AI Qualitative Analysis** - Fund Manager persona provides professional investment analysis
-- **Human-in-the-Loop (HITL)** - Interactive preference collection for personalized recommendations
-- **3-Tier Safety Framework** - Evaluates Financial Health, Income Stability, and Sponsor Strength
-- **Web Search Integration** - Fetches latest news and tenant information via DuckDuckGo
-- **Markdown Report Generation** - Produces timestamped reports combining quantitative data with qualitative insights
+- **Map-Reduce Architecture** - Parallel analysis of multiple REITs with independent mini-agents
+- **Dual Data Sources** - Yahoo Finance metrics + quarterly PDF report extraction
+- **PDF Extraction Pipeline** - Automated download and parsing of investor relations documents
+- **Full-Text Analysis** - Latest quarter full text (~25K tokens) + LLM summaries of earlier quarters
+- **Two Analysis Modes** - SWAN (conservative) and VALUE (growth) investment frameworks
+- **Markdown Reports** - Professional reports with rankings, deep dives, and risk analysis
 
 ## Quick Start
 
 ### Prerequisites
 - Python 3.10+
-- Azure OpenAI access with deployed model
-- Azure AD credentials
+- [uv](https://docs.astral.sh/uv/) package manager
+- Azure OpenAI or Anthropic API access
 
 ### Installation
 
@@ -36,12 +32,8 @@ The system fetches real-time data for 24 Singapore-listed REITs, ranks them by m
 git clone <repository-url>
 cd reit-analysis
 
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On macOS/Linux
-
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies with uv
+uv sync
 ```
 
 ### Configuration
@@ -49,214 +41,175 @@ pip install -r requirements.txt
 Create a `.env` file in the project root:
 
 ```env
+# Azure OpenAI (if using)
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_DEPLOYMENT=your-deployment-name
-AZURE_OPENAI_API_VERSION=your-api-version
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
+AZURE_OPENAI_API_VERSION=2024-10-21
 AZURE_TENANT_ID=your-tenant-id
 AZURE_CLIENT_ID=your-client-id
 AZURE_CLIENT_SECRET=your-client-secret
+
+# Anthropic (if using)
+ANTHROPIC_API_KEY=your-api-key
 ```
 
-## LLM Configuration
-
-The agent supports multiple LLM providers with separate configuration for primary analysis and reflection/critique. Edit `llm_config.json` to customize:
-
-### Default Configuration (Azure OpenAI for both)
-
-```json
-{
-  "primary_llm": {
-    "provider": "azure_openai",
-    "model": null,
-    "temperature": 1.0
-  },
-  "reflection_llm": {
-    "provider": "azure_openai",
-    "model": null,
-    "temperature": 0.7
-  }
-}
-```
-
-### Example: Anthropic Claude for Both
-
-```json
-{
-  "primary_llm": {
-    "provider": "anthropic",
-    "model": "claude-sonnet-4-5-20250929",
-    "temperature": 1.0
-  },
-  "reflection_llm": {
-    "provider": "anthropic",
-    "model": "claude-sonnet-4-5-20250929",
-    "temperature": 0.7
-  }
-}
-```
-
-### Example: Mixed Providers (Azure Primary + Anthropic Reflection)
-
-```json
-{
-  "primary_llm": {
-    "provider": "azure_openai",
-    "model": null,
-    "temperature": 1.0
-  },
-  "reflection_llm": {
-    "provider": "anthropic",
-    "model": "claude-sonnet-4-5-20250929",
-    "temperature": 0.7
-  }
-}
-```
-
-### Supported Providers
-
-| Provider | Config Value | Required Env Vars |
-|----------|--------------|-------------------|
-| Azure OpenAI | `azure_openai` | `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT_NAME`, `AZURE_OPENAI_API_VERSION`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TOKEN_URL` |
-| Anthropic Claude | `anthropic` | `ANTHROPIC_API_KEY` |
-
-### Configuration Options
-
-| Option | Description |
-|--------|-------------|
-| `provider` | LLM provider: `azure_openai` or `anthropic` |
-| `model` | Model name. For Azure, use `null` to use `AZURE_OPENAI_DEPLOYMENT_NAME` env var. For Anthropic: `claude-sonnet-4-5-20250929`, `claude-opus-4-5-20251101`, etc. |
-| `temperature` | Model temperature (0.0-2.0). Lower = more focused, higher = more creative |
-
-### Run the Agent
+### Running the Agent
 
 ```bash
-python3 reit_info_agent.py
+# SWAN mode (conservative analysis) - default
+uv run python reit_info_agent.py
+
+# VALUE mode (value investing analysis)
+uv run python reit_info_agent.py --mode value
+
+# Analyze all 11 REITs with PDF data
+uv run python reit_info_agent.py --mode swan --reits 11
+
+# Non-interactive mode (skip preference prompts)
+uv run python reit_info_agent.py --no-input
+
+# Use all REITs by market cap (including those without PDFs)
+uv run python reit_info_agent.py --all-reits
 ```
 
-The agent will:
-1. Prompt you for investment preferences (risk tolerance)
-2. Fetch and analyze top Singapore REITs
-3. Generate a timestamped markdown report: `reit_analysis_YYYYMMDD_HHMMSS.md`
+### PDF Data Pipeline
+
+```bash
+# Download quarterly PDFs for all configured REITs
+uv run python pdf_downloader.py --all
+
+# Download for a specific REIT
+uv run python pdf_downloader.py C38U.SI
+
+# Extract and cache data from PDFs
+uv run python quarterly_parser.py C38U.SI
+
+# Check cache status
+uv run python data_cache.py
+```
 
 ## Architecture
 
-### Three-Layer Design
+### Map-Reduce Pattern
 
 ```
-┌─────────────────────────────────────────────┐
-│              Agent Layer                     │
-│  reit_info_agent.py, nodes.py, tools.py     │
-│  LangGraph orchestration + HITL workflow     │
-└─────────────────────────────────────────────┘
-                    │
-┌─────────────────────────────────────────────┐
-│              Auth Layer                      │
-│  azure_auth.py                              │
-│  Azure AD OAuth 2.0 token provider          │
-└─────────────────────────────────────────────┘
-                    │
-┌─────────────────────────────────────────────┐
-│              Data Layer                      │
-│  yahoo_finance_api.py - Financial metrics   │
-│  singapore_reits.py - REIT discovery        │
-└─────────────────────────────────────────────┘
+START
+  │
+setup_node
+  ├─ Fetch top N REITs by market cap
+  ├─ Get Yahoo Finance data (price, yield, gearing, ICR, DPU history)
+  ├─ Get quarterly PDF data (occupancy, WALE, tenants, rent reversion)
+  └─ Pre-filter (gearing > 50% or ICR < 2.0 → excluded)
+  │
+fan_out_to_mini_agents [PARALLEL]
+  └─ Send() spawns independent mini-agent per REIT
+  │
+mini_agent_node (parallel execution)
+  ├─ Load mode-specific prompt (swan/value)
+  ├─ Format combined Yahoo + quarterly data
+  ├─ LLM analyzes and outputs structured JSON
+  └─ Parse JSON result (score, qualified, rationale)
+  │
+reduce_node
+  ├─ Filter to qualified REITs only
+  ├─ Sort by score descending
+  └─ Take top N
+  │
+report_node
+  ├─ Load reduce prompt template
+  ├─ LLM synthesizes individual analyses into final report
+  └─ Output markdown with rankings, deep dives, exclusions
+  │
+END → Save to results/
 ```
 
-### LangGraph Workflow
-
-```
-preference_collector → preference_parser → agent → [router]
-                                                      │
-                                         ┌────────────┴────────────┐
-                                         ↓                         ↓
-                                      tools → agent (loop)        END
-```
-
-### Design Principles
-
-- **Division of Labor**: Python handles deterministic operations (data fetching, arithmetic, ranking); LLM handles qualitative reasoning (business analysis, risk assessment)
-- **Dual Data Formats**: Structured dicts for programmatic use, formatted strings for LLM consumption
-- **External Prompts**: Prompt templates live in `prompts/` directory, enabling behavior changes without code modifications
-
-## Project Structure
+### Key Files
 
 | File | Purpose |
 |------|---------|
-| `reit_info_agent.py` | Main entry point; LangGraph orchestration |
-| `state.py` | TypedDict definitions for AgentState and UserPreferences |
-| `nodes.py` | Node functions: preference collection, parsing, agent logic, routing |
-| `tools.py` | LLM-bound tools: REIT lookup, batch analysis, web search |
-| `yahoo_finance_api.py` | Yahoo Finance interface with dual output modes |
-| `singapore_reits.py` | Curated list of 24 Singapore REIT tickers |
-| `azure_auth.py` | Azure AD OAuth 2.0 authentication |
-| `config/llm_config.py` | LLM configuration loader and validation |
-| `llm/llm_factory.py` | LLM provider factory (Azure OpenAI, Anthropic) |
-| `llm_config.json` | LLM provider configuration file |
-| `prompts/reit_audit_prompt.txt` | Fund Manager persona prompt template |
+| `reit_info_agent.py` | Main orchestrator - LangGraph StateGraph, fan-out/fan-in |
+| `mini_agent.py` | Single REIT analyzer - receives pre-fetched data, returns JSON |
+| `yahoo_finance_api.py` | Yahoo Finance interface - price, yield, metrics, DPU history |
+| `quarterly_parser.py` | PDF extraction - occupancy, WALE, tenants, leverage |
+| `pdf_downloader.py` | Playwright-based PDF discovery and download |
+| `data_cache.py` | Caching layer with 7-day TTL and LLM summaries |
+| `singapore_reits.py` | Curated S-REIT list with market cap ranking |
 
-## Key Financial Metrics
+## Analysis Modes
 
-The agent fetches these metrics per REIT:
+### SWAN Mode (Conservative)
 
-| Metric | Description |
-|--------|-------------|
-| Current Price | Latest trading price |
-| Market Cap | Total market capitalization |
-| P/B Ratio | Price-to-Book ratio (below 1.0 = trading below book value) |
-| Gearing Ratio | Debt/Total Assets (40%+ triggers safety concerns) |
-| Interest Coverage Ratio | Ability to service debt (below 3.0x = warning) |
-| Dividend Yield | Current yield percentage |
-| DPU History | 5-year Distribution Per Unit with CAGR calculation |
-| YTD Performance | Year-to-date price change |
+**Target**: Retirees seeking capital preservation and stable dividends
 
-## Customization
+**Hard Requirements** (must meet ALL):
+1. Tier 1 Sponsor (CapitaLand, Mapletree, Frasers, Keppel)
+2. Gearing below 50%
+3. Interest Coverage Ratio (ICR) above 3.0x
+4. Low volatility (Beta below 0.8)
+5. Stable DPU - no consecutive dividend cuts in 3 years
 
-### Modifying the Analysis Prompt
+### VALUE Mode (Growth)
 
-Edit `prompts/reit_audit_prompt.txt` to change the AI's analysis style, framework, or persona without modifying code:
+**Target**: Income investors seeking upside potential with margin of safety
 
-```bash
-nano prompts/reit_audit_prompt.txt
+**Hard Requirements** (must meet ALL):
+1. P/B ratio below 0.9 (NAV discount)
+2. Dividend yield above 6%
+3. Gearing below 45%
+4. ICR above 2.5x
+5. DPU decline less than 30% over 3 years
+
+## REITs with PDF Data
+
+The following 11 REITs have quarterly PDF data configured:
+
+| Ticker | Company | Sector |
+|--------|---------|--------|
+| C38U.SI | CapitaLand Integrated Commercial Trust | Retail/Office |
+| A17U.SI | CapitaLand Ascendas REIT | Industrial/Logistics |
+| N2IU.SI | Mapletree Pan Asia Commercial Trust | Commercial |
+| M44U.SI | Mapletree Logistics Trust | Logistics |
+| ME8U.SI | Mapletree Industrial Trust | Industrial/Data Centre |
+| AJBU.SI | Keppel DC REIT | Data Centre |
+| K71U.SI | Keppel REIT | Office |
+| J69U.SI | Frasers Centrepoint Trust | Suburban Retail |
+| BUOU.SI | Frasers Logistics & Commercial Trust | Logistics/Commercial |
+| CJLU.SI | NetLink NBN Trust | Infrastructure |
+| HMN.SI | CapitaLand Ascott Trust | Hospitality |
+
+## LLM Configuration
+
+Edit `llm_config.json` to configure the LLM provider:
+
+```json
+{
+  "primary_llm": {
+    "provider": "azure_openai",
+    "model": null,
+    "temperature": 1.0
+  }
+}
 ```
 
-### Adding REITs
-
-Update the ticker list in `singapore_reits.py` to include additional REITs.
-
-## Testing
-
-```bash
-# Run full test suite (3 tests)
-python3 test_reit_components.py
-
-# Test individual components in Python REPL
-python3
->>> from yahoo_finance_api import get_reit_info
->>> print(get_reit_info("C38U.SI"))  # CapitaLand Ascendas REIT
-```
+**Supported Providers**:
+- `azure_openai` - Uses Azure OpenAI with Azure AD authentication
+- `anthropic` - Uses Anthropic Claude API
 
 ## Sample Output
 
-Generated reports include:
-- **Raw Data Table** - All REITs with complete metrics
-- **DPU Trends** - Dividend history with calculated CAGR per REIT
-- **AI Analysis** - SWAN categorization, value picks, and red flags with detailed rationale
+Reports are saved to `results/` directory:
+- `swan_analysis_YYYYMMDD_HHMMSS.md` - SWAN mode reports
+- `value_analysis_YYYYMMDD_HHMMSS.md` - VALUE mode reports
 
-Example report: `reit_analysis_20260105_121130.md`
+Each report includes:
+- Executive Summary with top recommendations
+- Individual REIT deep dives with tenant details
+- REITs that did not qualify with reasons
+- Appendix with raw Yahoo Finance data and DPU history
 
 ## Technical Documentation
 
-For detailed architecture documentation, design decisions, and development guidelines, see [CLAUDE.md](./CLAUDE.md).
-
-## Dependencies
-
-- `langchain-openai` - Azure OpenAI integration
-- `langchain-anthropic` - Anthropic Claude integration
-- `langgraph` - Graph orchestration with checkpointing
-- `azure-identity` - Azure authentication
-- `yfinance` - Yahoo Finance API
-- `pandas` - Data manipulation
-- `duckduckgo-search` - Web search for qualitative info
+For detailed architecture, design decisions, and development guidelines, see [CLAUDE.md](./CLAUDE.md).
 
 ## License
 

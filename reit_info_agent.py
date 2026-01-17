@@ -19,7 +19,7 @@ from langgraph.types import Send
 from config import load_llm_config
 from llm import create_llm
 from yahoo_finance_api import get_reit_data_structured
-from singapore_reits import get_top_reits_by_market_cap
+from singapore_reits import get_top_reits_by_market_cap, get_reits_with_pdfs, SINGAPORE_REITS
 from data_cache import get_reit_quarterly_structured
 from mini_agent import analyze_single_reit
 
@@ -66,6 +66,7 @@ class OrchestratorState(TypedDict):
     mode: str
     top: int
     reits_to_screen: int
+    all_reits: bool  # If True, use all REITs by market cap; if False (default), use only REITs with PDFs
     user_preferences: dict
     # Combined Yahoo + quarterly data for candidates
     candidates: List[dict]
@@ -92,11 +93,25 @@ def setup_node(state: OrchestratorState) -> dict:
     """
     reits_to_screen = state["reits_to_screen"]
     mode = state["mode"]
+    all_reits_mode = state.get("all_reits", False)
 
-    print(f"\n[SETUP] Fetching top {reits_to_screen} Singapore REITs by market cap...")
+    # Step 1: Get REITs to analyze
+    if all_reits_mode:
+        # Legacy behavior: select by market cap regardless of PDF availability
+        print(f"\n[SETUP] Fetching top {reits_to_screen} Singapore REITs by market cap...")
+        top_reits = get_top_reits_by_market_cap(reits_to_screen)
+    else:
+        # Default: only REITs with PDFs, sorted by market cap
+        print(f"\n[SETUP] Fetching REITs with PDF data available...")
+        pdf_tickers = get_reits_with_pdfs()
+        print(f"[SETUP] Found {len(pdf_tickers)} REITs with PDF data configured")
 
-    # Step 1: Get top REITs by market cap
-    top_reits = get_top_reits_by_market_cap(reits_to_screen)
+        # Get all REITs sorted by market cap, then filter to those with PDFs
+        all_market_cap = get_top_reits_by_market_cap(len(SINGAPORE_REITS))
+        top_reits = [(t, mc, name) for t, mc, name in all_market_cap if t in pdf_tickers]
+        # Respect reits_to_screen limit
+        top_reits = top_reits[:reits_to_screen]
+        print(f"[SETUP] Selected {len(top_reits)} REITs (limited to {reits_to_screen})")
 
     if not top_reits:
         print("[SETUP] Error: Could not fetch REIT list")
@@ -424,6 +439,8 @@ def parse_args():
                         help='Number of top REITs to recommend (default: 5)')
     parser.add_argument('--reits', type=int, default=10,
                         help='Number of REITs to screen (default: 10)')
+    parser.add_argument('--all-reits', action='store_true',
+                        help='Analyze all REITs by market cap (default: only REITs with PDF data)')
     parser.add_argument('--no-input', action='store_true',
                         help='Skip interactive prompts, use default preferences')
     return parser.parse_args()
@@ -586,6 +603,10 @@ def main():
     print(f"\n[CONFIG] Mode: {args.mode.upper()}")
     print(f"[CONFIG] Screening top {args.reits} REITs")
     print(f"[CONFIG] Recommending top {args.top} picks")
+    if getattr(args, 'all_reits', False):
+        print("[CONFIG] REIT Selection: All REITs by market cap")
+    else:
+        print("[CONFIG] REIT Selection: Only REITs with PDF data (default)")
 
     # Collect user preferences (or use defaults for non-interactive mode)
     if getattr(args, 'no_input', False):
@@ -601,6 +622,7 @@ def main():
         "mode": args.mode,
         "top": args.top,
         "reits_to_screen": args.reits,
+        "all_reits": getattr(args, 'all_reits', False),
         "user_preferences": user_preferences,
         "candidates": [],
         "filtered_out": [],

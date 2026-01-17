@@ -130,5 +130,74 @@
     ],
     "confidence": "high",
     "last_researched": "2026-01-15"
+  },
+  "D5IU.SI": {
+    "name": "Lippo Malls Indonesia Retail Trust",
+    "website": "https://www.lmir-trust.com",
+    "quarterly_url": null,
+    "quarterly_pattern": "",
+    "sample_pdfs": [],
+    "confidence": "low",
+    "last_researched": "2026-01-17",
+    "notes": [
+      "Error during discovery: Page.goto: Navigation to \"https://www.lmir-trust.com/\" is interrupted by another navigation to \"chrome-error://chromewebdata/\"\nCall log:\n  - navigating to \"https://www.lmir-trust.com/\", waiting until \"domcontentloaded\"\n"
+    ]
+  },
+  "CJLU.SI": {
+    "name": "NetLink NBN Trust",
+    "website": "https://www.netlinknbn.com",
+    "quarterly_url": "https://www.netlinknbn.com/financials.html",
+    "quarterly_pattern": "(?i)\\d{8}_\\d{6}_cjlu_[A-Z0-9]+\\.(\\d+\\.)?pdf",
+    "sample_pdfs": [
+      "https://www.netlinknbn.com/newsroom/20251103_180624_CJLU_UD5AZOA1IZ15XMEW.1.pdf",
+      "https://www.netlinknbn.com/newsroom/20251103_180624_CJLU_UD5AZOA1IZ15XMEW.2.pdf",
+      "https://www.netlinknbn.com/newsroom/20251103_180624_CJLU_UD5AZOA1IZ15XMEW.3.pdf",
+      "https://www.netlinknbn.com/newsroom/20250731_184601_CJLU_TUGZJ8QMULFGO31U.1.pdf",
+      "https://www.netlinknbn.com/newsroom/20250731_184601_CJLU_TUGZJ8QMULFGO31U.2.pdf"
+    ],
+    "confidence": "high",
+    "last_researched": "2026-01-17"
+  },
+  "C2PU.SI": {
+    "name": "Parkway Life Real Estate Investment Trust",
+    "website": "https://www.plifereit.com",
+    "quarterly_url": null,
+    "quarterly_pattern": "",
+    "sample_pdfs": [],
+    "confidence": "low",
+    "last_researched": "2026-01-17",
+    "notes": [
+      "Error during discovery: Page.goto: Navigation to \"https://www.plifereit.com/\" is interrupted by another navigation to \"chrome-error://chromewebdata/\"\nCall log:\n  - navigating to \"https://www.plifereit.com/\", waiting until \"domcontentloaded\"\n"
+    ]
+  },
+  "TS0U.SI": {
+    "name": "OUE Real Estate Investment Trust",
+    "website": "https://www.ouereit.com",
+    "quarterly_url": "https://investor.ouereit.com/financials.html",
+    "quarterly_pattern": "(?i)\\d{8}_\\d{6}_ts0u_[A-Z0-9]+\\.(\\d+\\.)?pdf",
+    "sample_pdfs": [
+      "https://investor.ouereit.com/newsroom/20250424_172635_TS0U_4LM7L8I8F3IKLCG0.1.pdf",
+      "https://investor.ouereit.com/newsroom/20250424_172635_TS0U_4LM7L8I8F3IKLCG0.2.pdf",
+      "https://investor.ouereit.com/newsroom/20250723_193416_TS0U_BD4G2JYXLYWMZB1T.1.pdf",
+      "https://investor.ouereit.com/newsroom/20250723_193416_TS0U_BD4G2JYXLYWMZB1T.2.pdf",
+      "https://investor.ouereit.com/newsroom/20250723_193416_TS0U_BD4G2JYXLYWMZB1T.3.pdf"
+    ],
+    "confidence": "high",
+    "last_researched": "2026-01-17"
+  },
+  "HMN.SI": {
+    "name": "CapitaLand Ascott Trust",
+    "website": "https://www.capitalandascotttrust.com",
+    "quarterly_url": "https://investor.capitalandascotttrust.com/financials.html",
+    "quarterly_pattern": "(?i)\\d{8}_\\d{6}_hmn_[A-Z0-9]+\\.(\\d+\\.)?pdf",
+    "sample_pdfs": [
+      "https://investor.capitalandascotttrust.com/newsroom/20251029_063436_HMN_R8Q1KLG67TR5DCMU.1.pdf",
+      "https://investor.capitalandascotttrust.com/newsroom/20250729_064057_HMN_VMRVH20G446UA7ZU.3.pdf",
+      "https://investor.capitalandascotttrust.com/newsroom/20250729_064057_HMN_VMRVH20G446UA7ZU.1.pdf",
+      "https://investor.capitalandascotttrust.com/newsroom/20250729_064057_HMN_VMRVH20G446UA7ZU.4.pdf",
+      "https://investor.capitalandascotttrust.com/newsroom/20250729_064057_HMN_VMRVH20G446UA7ZU.2.pdf"
+    ],
+    "confidence": "high",
+    "last_researched": "2026-01-17"
   }
 }
