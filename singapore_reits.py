@@ -1,7 +1,9 @@
 """
 Singapore REIT Tickers and Discovery Functions
 """
+import json
 import yfinance as yf
+from pathlib import Path
 from typing import List, Tuple
 
 
@@ -77,6 +79,31 @@ def get_top_reits_by_market_cap(limit: int = 20) -> List[Tuple[str, float, str]]
         print(f"  {i}. {ticker} ({name}): ${market_cap/1e9:.2f}B")
 
     return top_reits
+
+
+def get_reits_with_pdfs() -> List[str]:
+    """
+    Returns list of REIT tickers that have PDF data configured.
+    Reads from config/reit_ir_urls.json and checks for high confidence entries.
+
+    Returns:
+        List of ticker symbols with PDF data available
+    """
+    config_path = Path(__file__).parent / "config" / "reit_ir_urls.json"
+    if not config_path.exists():
+        print(f"[WARNING] Config file not found: {config_path}")
+        return []
+
+    with open(config_path) as f:
+        config = json.load(f)
+
+    # Return tickers with high confidence (have quarterly_url and sample_pdfs)
+    pdf_tickers = [
+        ticker for ticker, data in config.items()
+        if data.get("confidence") == "high" and data.get("quarterly_url")
+    ]
+
+    return pdf_tickers
 
 
 if __name__ == "__main__":

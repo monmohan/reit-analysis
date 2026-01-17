@@ -98,83 +98,171 @@ def format_combined_data(data: dict) -> str:
         output.append(f"Target Price: S${yahoo.get('target_price_mean'):.2f}")
 
     # ===== QUARTERLY REPORT DATA =====
-    output.append("\n" + "=" * 50)
-    output.append("QUARTERLY REPORT DATA")
-    output.append("=" * 50)
-
+    # Use new formatter with full text + summaries for deep analysis
     if data_status == "partial" or not quarterly:
+        output.append("\n" + "=" * 50)
+        output.append("QUARTERLY REPORT DATA")
+        output.append("=" * 50)
         output.append("⚠️ QUARTERLY DATA NOT AVAILABLE")
         output.append("Analysis will be based on Yahoo Finance data only.")
         output.append("This is a limitation - some operational metrics may be missing.")
+        output.append("\n" + "=" * 50)
     else:
-        quarters = quarterly.get("quarters", [])
-        output.append(f"Data from {len(quarters)} quarterly reports")
+        # Use full text + summaries formatter for comprehensive analysis
+        quarterly_text = format_full_plus_summaries(data)
+        output.append("\n" + quarterly_text)
 
-        if latest_quarter:
-            op_metrics = latest_quarter.get("operational_metrics", {})
-            cap_metrics = latest_quarter.get("capital_metrics", {})
-            market_data = latest_quarter.get("market_data", {})
-
-            quarter_label = latest_quarter.get("quarter", "Latest")
-            report_date = latest_quarter.get("report_date", "")
-            output.append(f"\nLatest Quarter: {quarter_label} ({report_date})")
-
-            # Occupancy
-            occupancy = op_metrics.get("occupancy", {})
-            if occupancy:
-                output.append(f"\nOccupancy:")
-                if occupancy.get("portfolio"):
-                    output.append(f"  Portfolio: {occupancy['portfolio']:.1f}%")
-                if occupancy.get("retail"):
-                    output.append(f"  Retail: {occupancy['retail']:.1f}%")
-                if occupancy.get("office"):
-                    output.append(f"  Office: {occupancy['office']:.1f}%")
-
-            # WALE
-            wale = op_metrics.get("wale", {})
-            if wale:
-                output.append(f"\nWeighted Average Lease Expiry (WALE):")
-                if isinstance(wale, dict):
-                    if wale.get("portfolio"):
-                        output.append(f"  Portfolio: {wale['portfolio']:.1f} years")
-                else:
-                    output.append(f"  Portfolio: {wale:.1f} years")
-
-            # Top Tenants
-            tenants = op_metrics.get("top_tenants", [])
-            if tenants:
-                output.append(f"\nTop Tenants:")
-                for tenant in tenants[:5]:
-                    name = tenant.get("name", "Unknown")
-                    pct = tenant.get("percentage", 0)
-                    output.append(f"  - {name}: {pct:.1f}%")
-
-            # Rent Reversion
-            rent_rev = op_metrics.get("rent_reversion", {})
-            if rent_rev:
-                output.append(f"\nRent Reversion:")
-                for segment, value in rent_rev.items():
-                    if value is not None:
-                        output.append(f"  {segment.capitalize()}: {value:+.1f}%")
-
-            # Capital Metrics from PDF
-            if cap_metrics:
-                output.append(f"\nCapital Metrics (from quarterly report):")
-                if cap_metrics.get("leverage"):
-                    output.append(f"  Leverage: {cap_metrics['leverage']:.1f}%")
-                if cap_metrics.get("cost_of_debt"):
-                    output.append(f"  Cost of Debt: {cap_metrics['cost_of_debt']:.2f}%")
-
-            # Market Data
-            if market_data:
-                output.append(f"\nMarket Context:")
-                if market_data.get("sg_retail_rent_yoy"):
-                    output.append(f"  SG Retail Rents YoY: {market_data['sg_retail_rent_yoy']:+.1f}%")
-                if market_data.get("sg_office_rent_yoy"):
-                    output.append(f"  SG Office Rents YoY: {market_data['sg_office_rent_yoy']:+.1f}%")
-
-    output.append("\n" + "=" * 50)
     return "\n".join(output)
+
+
+def format_full_plus_summaries(data: dict, max_latest_chars: int = 80000) -> str:
+    """
+    Format quarterly data with full text for latest quarter + summaries for earlier quarters.
+
+    This provides:
+    - Deep qualitative context from latest quarter (full PDF text)
+    - Trend context from earlier quarters (LLM-generated summaries)
+    - Structured metrics table for quantitative comparison
+
+    Args:
+        data: Combined data object with 'quarterly' key
+        max_latest_chars: Max characters for latest quarter full text
+    """
+    output = []
+    quarterly = data.get("quarterly", {})
+    quarters = quarterly.get("quarters", [])
+
+    if not quarters:
+        return "No quarterly report data available."
+
+    output.append("=" * 60)
+    output.append("QUARTERLY ANALYSIS DATA")
+    output.append("=" * 60)
+
+    # ===== LATEST QUARTER - FULL TEXT =====
+    latest = quarters[0]
+    quarter_label = latest.get("quarter", "Latest")
+    report_date = latest.get("report_date", "")
+    full_text = latest.get("full_text", "")
+
+    output.append(f"\n## LATEST QUARTER: {quarter_label} ({report_date})")
+    output.append("=" * 60)
+    output.append("FULL REPORT TEXT (for deep qualitative analysis):")
+    output.append("-" * 40)
+
+    if full_text:
+        output.append(full_text[:max_latest_chars])
+        if len(full_text) > max_latest_chars:
+            output.append(f"\n[Truncated at {max_latest_chars} characters]")
+    else:
+        output.append("[Full text not available - using structured metrics only]")
+        output.append(_format_structured_metrics(latest))
+
+    # ===== EARLIER QUARTERS - LLM SUMMARIES =====
+    if len(quarters) > 1:
+        output.append("\n" + "=" * 60)
+        output.append("EARLIER QUARTERS - SUMMARIES (for trend context)")
+        output.append("=" * 60)
+
+        for q in quarters[1:]:
+            q_label = q.get("quarter", "Unknown")
+            q_date = q.get("report_date", "")
+            summary = q.get("summary", "")
+
+            output.append(f"\n### {q_label} ({q_date})")
+            output.append("-" * 40)
+
+            if summary:
+                output.append(summary)
+            else:
+                output.append("[Summary not available - using structured metrics]")
+                output.append(_format_structured_metrics(q))
+
+    # ===== STRUCTURED METRICS TABLE =====
+    output.append("\n" + "=" * 60)
+    output.append("QUARTERLY METRICS COMPARISON")
+    output.append("=" * 60)
+    output.append(_format_metrics_table(quarters))
+
+    return "\n".join(output)
+
+
+def _format_structured_metrics(quarter: dict) -> str:
+    """Format structured metrics as fallback when full_text/summary unavailable."""
+    lines = []
+    op = quarter.get("operational_metrics", {})
+    cap = quarter.get("capital_metrics", {})
+
+    occupancy = op.get("occupancy", {})
+    if occupancy:
+        if isinstance(occupancy, dict):
+            occ_val = occupancy.get("portfolio", occupancy.get("retail", "N/A"))
+        else:
+            occ_val = occupancy
+        lines.append(f"Occupancy: {occ_val}%")
+
+    wale = op.get("wale", {})
+    if wale:
+        if isinstance(wale, dict):
+            wale_val = wale.get("portfolio", "N/A")
+        else:
+            wale_val = wale
+        lines.append(f"WALE: {wale_val} years")
+
+    rent_rev = op.get("rent_reversion", {})
+    if rent_rev:
+        rev_parts = []
+        for seg, val in rent_rev.items():
+            if val is not None:
+                rev_parts.append(f"{seg}: {val:+.1f}%")
+        if rev_parts:
+            lines.append(f"Rent Reversion: {', '.join(rev_parts)}")
+
+    if cap.get("leverage"):
+        lines.append(f"Leverage: {cap['leverage']:.1f}%")
+    if cap.get("cost_of_debt"):
+        lines.append(f"Cost of Debt: {cap['cost_of_debt']:.2f}%")
+
+    return "\n".join(lines) if lines else "No metrics available"
+
+
+def _format_metrics_table(quarters: list) -> str:
+    """Format metrics as comparison table across quarters."""
+    lines = []
+    lines.append(f"{'Quarter':<12} {'Occupancy':<12} {'WALE':<10} {'Leverage':<12} {'Cost of Debt':<12}")
+    lines.append("-" * 60)
+
+    for q in quarters:
+        quarter_label = (q.get("quarter") or "?")[:11]
+        op = q.get("operational_metrics", {})
+        cap = q.get("capital_metrics", {})
+
+        # Extract occupancy
+        occ = op.get("occupancy", {})
+        if isinstance(occ, dict):
+            occ_val = occ.get("portfolio", occ.get("retail", "N/A"))
+        else:
+            occ_val = occ if occ else "N/A"
+        occ_str = f"{occ_val}%" if occ_val != "N/A" else "N/A"
+
+        # Extract WALE
+        wale = op.get("wale", {})
+        if isinstance(wale, dict):
+            wale_val = wale.get("portfolio", "N/A")
+        else:
+            wale_val = wale if wale else "N/A"
+        wale_str = f"{wale_val}y" if wale_val != "N/A" else "N/A"
+
+        # Extract leverage and cost of debt
+        leverage = cap.get("leverage")
+        lev_str = f"{leverage:.1f}%" if leverage else "N/A"
+
+        cod = cap.get("cost_of_debt")
+        cod_str = f"{cod:.2f}%" if cod else "N/A"
+
+        lines.append(f"{quarter_label:<12} {occ_str:<12} {wale_str:<10} {lev_str:<12} {cod_str:<12}")
+
+    return "\n".join(lines)
 
 
 def create_agent_node(llm):

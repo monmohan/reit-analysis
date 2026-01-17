@@ -23,9 +23,10 @@ import requests
 from playwright.sync_api import sync_playwright
 
 
-# Paths
+# Paths - shared data directory outside repo for persistence
 CONFIG_PATH = Path(__file__).parent / "config" / "reit_ir_urls.json"
-CACHE_DIR = Path(__file__).parent / "data" / "pdf_cache"
+SHARED_DATA_DIR = Path.home() / "code" / "agents" / "reit-data"
+CACHE_DIR = SHARED_DATA_DIR / "pdf_cache"
 
 
 def load_config() -> dict:

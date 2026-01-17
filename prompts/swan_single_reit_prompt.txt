@@ -3,13 +3,13 @@ You are analyzing {company_name} ({ticker}) to determine if it qualifies as a SW
 ## SWAN Criteria
 
 **HARD REQUIREMENTS (Must meet ALL):**
-1. **Tier 1 Sponsor** - CapitaLand, Mapletree, Frasers, or Keppel only
-2. **Low Gearing** - Below 50%
-3. **Strong ICR** - Above 3.0x
-4. **Low Volatility** - Beta below 0.8
-5. **Stable DPU** - No consecutive dividend cuts in past 3 years (check dividend history)
+1. **Low Gearing** - Below 50%
+2. **Strong ICR** - Above 3.0x
+3. **Low Volatility** - Beta below 0.8
 
 **SOFT REQUIREMENTS (Enhance score if met):**
+4. **Stable DPU** - No consecutive dividend cuts in past 3 years (check dividend history)
+5. **Tier 1 Sponsor** - CapitaLand, Mapletree, Frasers, or Keppel only
 6. **Essential Tenants** - Supermarkets, healthcare, logistics, data centers, government
 7. **High Occupancy** - Above 95%
 8. **Long WALE** - Above 3 years
@@ -18,6 +18,49 @@ You are analyzing {company_name} ({ticker}) to determine if it qualifies as a SW
 ## Data Status: {data_status}
 
 {combined_data_formatted}
+
+---
+## QUALITATIVE ANALYSIS INSTRUCTIONS
+
+You have been provided with:
+- **FULL TEXT** of the latest quarterly report (for deep qualitative analysis)
+- **LLM-GENERATED SUMMARIES** of earlier quarters (for trend context)
+- **STRUCTURED METRICS COMPARISON** across all quarters
+
+Perform this comprehensive analysis:
+
+### 1. Deep Dive - Latest Quarter
+From the full report text, analyze:
+- What is management's strategic focus and priorities?
+- How do they describe portfolio quality and positioning?
+- What tenant concentration risks exist? Who are the top tenants?
+- How are they managing debt, refinancing, and interest rate exposure?
+- Any risk disclosures, concerns, or cautionary language?
+
+### 2. Trend Analysis (Compare Summaries Across Quarters)
+- Is management tone becoming more or less optimistic over time?
+- Are there recurring concerns mentioned across quarters?
+- How has the narrative evolved? Any strategic shifts?
+
+### 3. Quantitative Trends (From Metrics Table)
+- Occupancy trajectory: improving, stable, or declining?
+- WALE changes: lengthening or shortening?
+- Leverage direction: deleveraging or increasing debt?
+- DPU stability from dividend history
+
+### 4. Management Tone Assessment
+- Quote specific phrases that reveal confidence or caution
+- Any red flags in language or disclosures?
+- How does management discuss challenges vs opportunities?
+
+### 5. SWAN Verdict
+For a conservative retiree seeking stable dividends:
+- Is this a "sleep well at night" holding?
+- What are the key risks to dividend stability?
+- Would you recommend this for a retirement portfolio?
+
+**Your rationale MUST cite specific evidence from the reports** - quotes, figures, tenant names, and trends.
+---
 
 ## Your Task
 

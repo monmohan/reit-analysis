@@ -101,9 +101,9 @@ END → Save to results/
 | `reit_info_agent.py` | Main orchestrator - LangGraph StateGraph, fan-out/fan-in |
 | `mini_agent.py` | Single REIT analyzer - stateless, receives pre-fetched data |
 | `yahoo_finance_api.py` | Yahoo Finance interface - price, yield, metrics, DPU history |
-| `quarterly_parser.py` | PDF extraction - occupancy, WALE, tenants, leverage |
+| `quarterly_parser.py` | PDF extraction - occupancy, WALE, tenants, leverage, full text |
 | `pdf_downloader.py` | Playwright-based PDF discovery and download |
-| `data_cache.py` | Caching layer with 7-day TTL |
+| `data_cache.py` | Caching layer with 7-day TTL + LLM summary generation |
 | `singapore_reits.py` | Curated list of 24 S-REITs with market cap ranking |
 | `tools.py` | Tool definitions (get_reit_info, analyze_top_reits, search_qualitative) |
 | `llm/llm_factory.py` | LLM factory - Azure OpenAI / Anthropic Claude |
@@ -180,11 +180,43 @@ Extracts structured data from PDFs:
 - Rent reversion by segment
 - Leverage (aggregate gearing)
 - Cost of debt
+- Full PDF text (`full_text`) for deep qualitative analysis
 
 ### 4. Caching (`data_cache.py`)
 - 7-day TTL on extracted data
 - Auto-refresh on stale cache
 - Graceful fallback when PDFs unavailable
+
+## Deep Analysis Architecture
+
+### Full Text + Summaries Approach
+
+The system uses a two-stage approach for comprehensive REIT analysis:
+
+**Stage 1: PDF Extraction** (`quarterly_parser.py`)
+- Extracts structured metrics (occupancy, WALE, leverage, etc.)
+- Stores complete PDF text in `full_text` field
+
+**Stage 2: Summary Generation** (`data_cache.py`)
+- Latest quarter: Full text passed directly to LLM (~25K tokens)
+- Earlier quarters: LLM generates 500-700 word summaries (~2K tokens each)
+- Uses fast/cheap model for summary generation
+
+**Data Formatting** (`mini_agent.py`)
+- `format_full_plus_summaries()` combines:
+  - Full report text for latest quarter (deep qualitative analysis)
+  - LLM-generated summaries for earlier quarters (trend context)
+  - Structured metrics table for quantitative comparison
+
+### Token Budget
+
+| Quarter | Content Type | Token Budget |
+|---------|--------------|--------------|
+| Latest (Q0) | Full PDF text | ~25K |
+| Q-1 | LLM summary | ~2K |
+| Q-2 | LLM summary | ~2K |
+| Q-3 | LLM summary | ~2K |
+| **Total per REIT** | | **~31K** |
 
 ## Configuration
 
@@ -225,3 +257,4 @@ AZURE_CLIENT_SECRET=your-client-secret
 - **External Prompts**: Behavior modification without code changes
 - **Robust JSON Parsing**: Multi-stage extraction with control character sanitization
 - **Graceful Degradation**: Missing quarterly data → analysis continues with Yahoo only
+- **Full Text + Summaries**: Deep analysis of latest quarter with full PDF text, LLM-generated summaries for earlier quarters (trend context)
