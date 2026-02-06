@@ -20,11 +20,14 @@ from config import load_llm_config
 from llm import create_llm
 from yahoo_finance_api import get_reit_data_structured
 from singapore_reits import get_top_reits_by_market_cap, get_reits_with_pdfs, SINGAPORE_REITS
-from data_cache import get_reit_quarterly_structured
+from data_cache import get_reit_quarterly_structured, check_pdf_staleness
 from mini_agent import analyze_single_reit
 
 # 1. SETUP & AUTH
 load_dotenv()
+
+# Module-level flag set by CLI (used by setup_node)
+_skip_stale_check = False
 
 # Load LLM configuration
 llm_config = load_llm_config()
@@ -116,6 +119,22 @@ def setup_node(state: OrchestratorState) -> dict:
     if not top_reits:
         print("[SETUP] Error: Could not fetch REIT list")
         return {"candidates": [], "filtered_out": []}
+
+    # Step 1b: Check if any REITs have stale PDFs
+    if not _skip_stale_check:
+        stale_reits = []
+        for ticker, _mc, _name in top_reits:
+            is_stale, message = check_pdf_staleness(ticker)
+            if is_stale:
+                stale_reits.append((ticker, message))
+
+        if stale_reits:
+            print(f"\n[STALE] {len(stale_reits)} REIT(s) may have newer quarterly reports available:")
+            for ticker, message in stale_reits:
+                print(f"  - {message}")
+            print(f"\nTo update all PDFs: uv run python pdf_downloader.py --all")
+            print(f"To skip this check: add --skip-stale-check flag")
+            sys.exit(1)
 
     # Step 2: Fetch Yahoo + quarterly data for each REIT
     print(f"\n[SETUP] Fetching Yahoo + quarterly data for {len(top_reits)} REITs...")
@@ -443,6 +462,8 @@ def parse_args():
                         help='Analyze all REITs by market cap (default: only REITs with PDF data)')
     parser.add_argument('--no-input', action='store_true',
                         help='Skip interactive prompts, use default preferences')
+    parser.add_argument('--skip-stale-check', action='store_true',
+                        help='Skip PDF staleness check (proceed even if newer reports may be available)')
     return parser.parse_args()
 
 
@@ -595,7 +616,9 @@ Always conduct your own research and consult with a qualified financial advisor 
 
 def main():
     """Main entry point."""
+    global _skip_stale_check
     args = parse_args()
+    _skip_stale_check = getattr(args, 'skip_stale_check', False)
 
     print("\n" + "="*60)
     print("SINGAPORE REIT ANALYSIS AGENT - MAP-REDUCE ARCHITECTURE")

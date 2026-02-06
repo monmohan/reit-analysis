@@ -14,7 +14,7 @@ Usage:
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -56,9 +56,89 @@ def load_config() -> dict:
         return json.load(f)
 
 
-def get_cached_data(ticker: str) -> Optional[dict]:
+def _quarter_end_date(quarter_label: str) -> Optional[date]:
+    """
+    Parse a quarter label like '3Q 2025' or '1H 2025' to its quarter-end date.
+
+    Returns None if the label can't be parsed.
+    """
+    parts = quarter_label.strip().split()
+    if len(parts) != 2:
+        return None
+
+    q_part, year_str = parts
+    try:
+        year = int(year_str)
+    except ValueError:
+        return None
+
+    q_part = q_part.upper()
+    mapping = {
+        "1Q": date(year, 3, 31),
+        "Q1": date(year, 3, 31),
+        "2Q": date(year, 6, 30),
+        "Q2": date(year, 6, 30),
+        "3Q": date(year, 9, 30),
+        "Q3": date(year, 9, 30),
+        "4Q": date(year, 12, 31),
+        "Q4": date(year, 12, 31),
+        "1H": date(year, 6, 30),
+        "2H": date(year, 12, 31),
+    }
+    return mapping.get(q_part)
+
+
+def check_pdf_staleness(ticker: str) -> tuple[bool, str]:
+    """
+    Check if a REIT's quarterly PDFs are likely outdated.
+
+    Determines staleness by looking at the latest quarter label in cached data
+    and checking if enough time has passed for the next report to be available.
+
+    Returns:
+        (is_stale, message) - is_stale is True if a new report is likely available.
+    """
+    cache_path = EXTRACTED_DIR / f"{ticker}.json"
+    if not cache_path.exists():
+        return (False, "")
+
+    try:
+        with open(cache_path) as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, ValueError):
+        return (False, "")
+
+    quarters = data.get("quarters", [])
+    if not quarters:
+        return (False, "")
+
+    latest_label = quarters[0].get("quarter", "")
+    if not latest_label:
+        return (False, "")
+
+    quarter_end = _quarter_end_date(latest_label)
+    if not quarter_end:
+        return (False, "")
+
+    # Next report expected ~2.5 months (75 days) after quarter end
+    expected_release = quarter_end + timedelta(days=75)
+
+    if date.today() > expected_release:
+        return (
+            True,
+            f"Latest PDF is {latest_label}. Next quarterly report likely available. "
+            f"Run: uv run python pdf_downloader.py {ticker}",
+        )
+
+    return (False, "")
+
+
+def get_cached_data(ticker: str, current_pdfs: list[str] | None = None) -> Optional[dict]:
     """
     Load cached extracted data for a REIT if available.
+
+    When current_pdfs is provided, the cache is valid only if the source PDFs
+    match the PDFs currently on disk. This replaces the old 7-day TTL check.
 
     Returns None if no cache exists or cache is stale.
     """
@@ -71,12 +151,11 @@ def get_cached_data(ticker: str) -> Optional[dict]:
         with open(cache_path) as f:
             data = json.load(f)
 
-        # Check if cache is stale (older than 7 days)
-        if "extracted_at" in data:
-            extracted_at = datetime.fromisoformat(data["extracted_at"])
-            age_days = (datetime.now() - extracted_at).days
-            if age_days > 7:
-                print(f"[CACHE] {ticker} cache is {age_days} days old, refreshing...")
+        # Compare source PDFs against current PDFs on disk
+        if current_pdfs is not None:
+            cached_pdfs = sorted(data.get("source_pdfs", []))
+            if cached_pdfs != sorted(current_pdfs):
+                print(f"[CACHE] {ticker} PDFs changed on disk, refreshing...")
                 return None
 
         return data
@@ -84,11 +163,13 @@ def get_cached_data(ticker: str) -> Optional[dict]:
         return None
 
 
-def save_to_cache(ticker: str, data: dict) -> None:
-    """Save extracted data to cache."""
+def save_to_cache(ticker: str, data: dict, source_pdfs: list[str] | None = None) -> None:
+    """Save extracted data to cache with source PDF fingerprint."""
     EXTRACTED_DIR.mkdir(parents=True, exist_ok=True)
 
     data["extracted_at"] = datetime.now().isoformat()
+    if source_pdfs is not None:
+        data["source_pdfs"] = source_pdfs
 
     cache_path = EXTRACTED_DIR / f"{ticker}.json"
     with open(cache_path, "w") as f:
@@ -151,12 +232,15 @@ def get_reit_quarterly_structured(
     Used by setup_node to combine with Yahoo data.
     """
     # Check if we have PDFs
-    if not has_quarterly_pdfs(ticker):
+    pdfs = get_quarterly_pdfs(ticker)
+    if not pdfs:
         return None
+
+    current_pdfs = [p.name for p in pdfs]
 
     # Check cache first - verify it has summaries for earlier quarters
     if not force_refresh:
-        cached = get_cached_data(ticker)
+        cached = get_cached_data(ticker, current_pdfs)
         if cached and cached.get("quarters"):
             # Check if earlier quarters already have summaries
             quarters = cached.get("quarters", [])
@@ -184,9 +268,9 @@ def get_reit_quarterly_structured(
             if full_text and not quarter.get("summary"):
                 quarter["summary"] = summarize_quarter(full_text, quarter_label)
 
-    # Cache the data with summaries
+    # Cache the data with source PDF fingerprint
     if data.get("quarters"):
-        save_to_cache(ticker, data)
+        save_to_cache(ticker, data, current_pdfs)
         return data
 
     return None
